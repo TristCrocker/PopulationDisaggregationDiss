@@ -50,6 +50,22 @@ def load_data(shape_path, features_path, admin_level):
     data = Data(x=x, edge_index=edge_index)
     data.y = torch.tensor(node_features["T_TL"].values, dtype=torch.float)
 
+    #Train/val/test split
+    node_nums = data.num_nodes
+    positions = torch.randperm(node_nums)
+
+    train_size = int(0.7 * node_nums)
+    val_size = int(0.2 * node_nums)
+    test_size = node_nums - train_size - val_size
+
+    data.train_mask = torch.zeros(node_nums, dtype=torch.bool)
+    data.val_mask = torch.zeros(node_nums, dtype=torch.bool)
+    data.test_mask = torch.zeros(node_nums, dtype=torch.bool)
+
+    data.train_mask[positions[:train_size]] = True
+    data.val_mask[positions[train_size:train_size + val_size]] = True
+    data.test_mask[positions[train_size + val_size:]] = True
+
     return data
 
 def process_feature_data(node_features):
@@ -57,4 +73,3 @@ def process_feature_data(node_features):
       return node_features
 
 
-data = load_data("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/covariates/district/all_features_districts.csv", 2)

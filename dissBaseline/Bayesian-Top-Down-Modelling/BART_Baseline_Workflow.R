@@ -25,8 +25,8 @@ covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
-# covs_admin2 <- covs_admin2 %>%
-#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB)
+covs_admin2 <- covs_admin2 %>%
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
 
 # Calculate mean and standard deviation of covariates for scaling
 cov_stats <- data.frame(
@@ -67,7 +67,7 @@ set.seed(1234)
 model2 <- bartMachine(
   X = train_covs,
   y = train$pop_density,
-  k = 2, nu = 10, q = 0.75, num_trees = 500, use_missing_data = TRUE
+  k = 5, nu = 10, q = 0.75, num_trees = 700, use_missing_data = TRUE
 )
 # model2 <- bartMachineCV(
 #   X = covs_admin2,
@@ -241,8 +241,8 @@ covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_ar
                                      -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
-# covs_admin3 <- covs_admin3 %>%
-#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw)
+covs_admin3 <- covs_admin3 %>%
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
 
 #Standardize covs
 for (var in names(covs_admin3)) {

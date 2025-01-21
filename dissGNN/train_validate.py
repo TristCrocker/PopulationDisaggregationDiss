@@ -22,6 +22,7 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
 
         if epoch % 10 == 0:
             print("Epoch Number: ", epoch, ", Loss: ", loss, ", Validation Accuracy: ", accuracy, ".")
+    
 
 
     

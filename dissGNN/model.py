@@ -20,7 +20,7 @@ class GCN(nn.Module):
         self.drop_prob = drop_prob
 
 
-    def forward_pass(self, x, edge_index):
+    def forward(self, x, edge_index):
         for layer in self.conv:
             x = layer(x, edge_index)
             x = F.relu(x)
