@@ -27,5 +27,6 @@ class GCN(nn.Module):
             x = F.dropout(x, p=self.drop_prob, training = self.training)
 
         x = self.linear(x)
+        x = F.softmax(x, dim=0)  # Normalize predictions to sum to 1
 
         return x

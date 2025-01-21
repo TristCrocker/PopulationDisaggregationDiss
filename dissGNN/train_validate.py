@@ -2,6 +2,7 @@ def train(model, optimizer, data, loss_fn):
     model.train()
     optimizer.zero_grad()
     output = model(data.x, data.edge_index)
+    output = output.squeeze(dim=1)
     loss = loss_fn(output[data.train_mask], data.y[data.train_mask])
     loss.backward()
     optimizer.step()
@@ -20,8 +21,8 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
         loss = train(model, optimizer, data, loss_fn)
         accuracy = validate(model, data)
 
-        if epoch % 10 == 0:
-            print("Epoch Number: ", epoch, ", Loss: ", loss, ", Validation Accuracy: ", accuracy, ".")
+        # if epoch % 10 == 0:
+        print("Epoch Number: ", epoch, ", Loss: ", loss, ", Validation Accuracy: ", accuracy, ".")
     
 
 

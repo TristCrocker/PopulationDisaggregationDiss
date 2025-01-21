@@ -29,14 +29,16 @@ def convert_shapefile_to_graph(shape_path, admin_level):
 def load_data(shape_path, features_path, admin_level):
     edges = convert_shapefile_to_graph(shape_path, admin_level)
     node_features = pd.read_csv(features_path)
-    node_features = process_feature_data(node_features
-                                         )
+    
+
     # Check if mismatching districts between shape and feature data
     missing_districts = set(edges["source"]).union(set(edges["target"])) - set(node_features["ADM2_PCODE"])
+    
     if missing_districts:
         print("Missing districts in the features file: ", missing_districts)
 
-    x = torch.tensor(node_features, dtype=torch.float)
+    node_features = process_feature_data(node_features)
+    x = torch.tensor(node_features.values, dtype=torch.float)
 
     #Convert districts in edges to numbers
     district_to_index = {code: idx for idx, code in enumerate(node_features.index)}
@@ -69,7 +71,8 @@ def load_data(shape_path, features_path, admin_level):
     return data
 
 def process_feature_data(node_features):
-      node_features = node_features.drop(columns=["ADM2_PT", "ADM2_PCODE", "log_population"]).values
+      node_features = node_features.drop(columns=["ADM2_PT", "ADM2_PCODE", "log_population"])
+      node_features = node_features.fillna(0)  # Replace NaN values with 0
       return node_features
 
 

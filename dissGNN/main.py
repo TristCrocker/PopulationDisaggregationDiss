@@ -6,10 +6,10 @@ from data_processing import load_data
 
 if __name__ == "__main__":
     data = load_data("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/covariates/district/all_features_districts.csv", 2)
+    num_features = data.x.shape[1]
+    print(data.x)
 
-
-
-    input_size = 0
+    input_size = num_features
     output_size = 1
     hidden_size = 4
     message_passing_count = 4
@@ -25,6 +25,5 @@ if __name__ == "__main__":
     model.eval()
 
     #Predict admin3 
-
     # with torch.no_grad():
     #     admin_3_predictions = model()
