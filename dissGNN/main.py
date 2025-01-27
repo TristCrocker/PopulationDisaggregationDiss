@@ -5,10 +5,9 @@ import train_validate
 from data_processing import load_data
 
 if __name__ == "__main__":
-    data = load_data("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/covariates/district/all_features_districts.csv", 2)
+    data = load_data("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", "data/covariates/district/all_features_districts.csv", "data/covariates/postos/all_features_postos.csv", "data/mappings/mozam_admin_2_to_3_mappings.csv", 2, 3)
     num_features = data.x.shape[1]
-    print(data.x)
-
+   
     input_size = num_features
     output_size = 1
     hidden_size = 4
@@ -20,7 +19,7 @@ if __name__ == "__main__":
 
     loss_fn = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr = 0.01, weight_decay = 5e-4)
-    train_validate.train_loop(200, model, data, optimizer, loss_fn)
+    train_validate.train_loop(800, model, data, optimizer, loss_fn)
 
     model.eval()
 

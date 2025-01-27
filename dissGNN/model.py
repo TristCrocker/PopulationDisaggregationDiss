@@ -19,14 +19,12 @@ class GCN(nn.Module):
         self.linear = nn.Linear(hidden_layer_size, output_size)
         self.drop_prob = drop_prob
 
-
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
-            x = layer(x, edge_index)
+            x = layer(x, edge_index, edge_weight)
             x = F.relu(x)
             x = F.dropout(x, p=self.drop_prob, training = self.training)
 
         x = self.linear(x)
-        x = F.softmax(x, dim=0)  # Normalize predictions to sum to 1
 
         return x
