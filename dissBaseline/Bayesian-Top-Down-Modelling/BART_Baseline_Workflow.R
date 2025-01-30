@@ -169,13 +169,6 @@ print(admin2_metrics_test)
 write.csv(admin2_metrics_test, paste0(output_path, "BART/model_metrics.csv"), row.names = FALSE)
 
 
-
-
-
-
-
-
-
 # Plot Observed vs. Predicted
 library(ggplot2)
 ggplot(admin2_predictions) +

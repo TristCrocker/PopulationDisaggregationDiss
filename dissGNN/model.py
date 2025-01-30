@@ -19,6 +19,7 @@ class GCN(nn.Module):
         self.linear = nn.Linear(hidden_layer_size, output_size)
         self.drop_prob = drop_prob
 
+
     def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
             x = layer(x, edge_index, edge_weight)

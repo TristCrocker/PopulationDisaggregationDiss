@@ -39,9 +39,18 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
 
     # Join two edges dataframes which contains edges between admin 2 areas and edges between admin 2 and 3 areas
     edges_coarse = convert_shapefile_to_graph(shape_path_coarse, admin_level_coarse)
+    edges_coarse["type"] = "coarse"
     edges_fine = convert_shapefile_to_graph(shape_path_fine, admin_level_fine)
+    edges_fine["type"] = "fine"
     edges_mappings = convert_level_mappings_to_edges(mappings_path)
+    edges_mappings["type"] = "mappings"
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
+
+    #Add weights for edges
+    weights = {"coarse" : 1.0, "fine" : 0.5, "mappings" : 1.5}
+    edges["weights_init"] = edges["type"].map(weights)
+
+    #Normalize weights TODO
 
     #Load node fgeatures for coarse admin and fine admin level and rename to generealize for concat
     col_coarse_pcode = "ADM" + str(admin_level_coarse) + "_PCODE"
@@ -49,16 +58,16 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     
     node_features_coarse = pd.read_csv(features_path_coarse)
     node_features_coarse = node_features_coarse.rename(columns={col_coarse_pcode : "ADM_PCODE", col_coarse_pt : "ADM_PT"})
-    print(node_features_coarse)
+    print(len(node_features_coarse["ADM_PT"]))
 
     col_fine_pcode = "ADM" + str(admin_level_fine) + "_PCODE"
     col_fine_pt = "ADM" + str(admin_level_fine) + "_PT"
     node_features_fine = pd.read_csv(features_path_fine)
     node_features_fine = node_features_fine.rename(columns={col_fine_pcode : "ADM_PCODE", col_fine_pt : "ADM_PT"})
-    print(node_features_fine)
+    print(len(node_features_fine["ADM_PT"]))
 
     node_features = pd.concat([node_features_coarse, node_features_fine])
-    print(node_features)
+    print(len(node_features["ADM_PT"]))
     
     # Check if mismatching districts between shape and feature data
     missing_districts = set(edges["source"]).union(set(edges["target"])) - set(node_features["ADM_PCODE"])
@@ -66,19 +75,24 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     if missing_districts:
         print("Missing districts in the features file: ", missing_districts)
 
-    node_features = process_feature_data(node_features, admin_level_coarse, admin_level_fine)
+    #Retrieve node features in tensor form
+    node_features = process_feature_data(node_features)
     x = torch.tensor(node_features.values, dtype=torch.float)
 
     #Convert districts in edges to numbers
-    district_to_index = {code: idx for idx, code in enumerate(node_features.index)}
-    edges["source_idx"] = edges["source"].map(district_to_index)
-    edges["target_idx"] = edges["target"].map(district_to_index)
+    area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
+    edges["source_num"] = edges["source"].map(area_to_index)
+    edges["target_num"] = edges["target"].map(area_to_index)
 
     #Create edge index
-    edge_index = torch.tensor(edges[["source_idx", "target_idx"]].values.T, dtype=torch.long)
+    edge_index = torch.tensor(edges[["source_num", "target_num"]].values.T, dtype=torch.long)
+
+    #Edge weights
+    edge_weights = torch.tensor(edges["weights_init"].values, dtype=torch.float)
 
     #Produce graph data
     data = Data(x=x, edge_index=edge_index)
+    data.edge_weight = edge_weights
     data.y = torch.tensor(node_features["T_TL"].values, dtype=torch.float)
 
     #Standardize data
@@ -90,7 +104,6 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
 
     train_size = int(0.7 * node_nums)
     val_size = int(0.2 * node_nums)
-    test_size = node_nums - train_size - val_size
 
     data.train_mask = torch.zeros(node_nums, dtype=torch.bool)
     data.val_mask = torch.zeros(node_nums, dtype=torch.bool)
@@ -103,7 +116,6 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     return data
 
 def process_feature_data(node_features):
-
 
     node_features = node_features.drop(columns=["ADM_PCODE", "ADM_PT", "log_population"])
     node_features = node_features.fillna(0)  # Replace NaN values with 0
