@@ -113,22 +113,16 @@ print("Admin Level 2 Predictions:")
 print(admin2_predictions)
 
 #Predictions on test data
-predicted_values <- predict(model2, new_data = test_covs)
+predicted_values <- predict(model2, newdata = test_covs)
 
 # Create a data frame for predictions and observed values
 admin2_predictions_test <- data.frame(
-  predicted = predicted_values,    
-  observed = test$pop_density     
+  predicted = predicted_values,
+  observed = test$pop_density
 )
-
-# Compute credible intervals
-admin2_CI_test <- calc_credible_intervals(model2, new_data = test_covs) %>%
-  as_tibble() %>%
-  mutate(ci_lower_bd = ci_lower_bd, ci_upper_bd = ci_upper_bd)
 
 # Combine predictions with observed values
 admin2_predictions_test <- admin2_predictions_test %>%
-  cbind(test$pop_density, admin2_CI_test) %>%
   mutate(
     residual = predicted - observed,
     model = "RF"
@@ -145,8 +139,7 @@ admin2_metrics_test <- admin2_predictions_test %>%
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
     rmse = sqrt(mse),
-    corr = cor(predicted, observed),
-    In_IC = mean(observed < ci_lower_bd & observed > ci_upper_bd) * 100
+    corr = cor(predicted, observed)
   )
 
 # Print the metrics
@@ -159,9 +152,8 @@ write.csv(admin2_metrics_test, paste0(output_path, "RF/model_metrics.csv"), row.
 
 # Plot Observed vs. Predicted
 library(ggplot2)
-ggplot(admin2_predictions) +
-  geom_pointrange(
-    aes(x = observed, y = predicted, ymin = ci_lower_bd, ymax = ci_upper_bd),
+ggplot(admin2_predictions,
+    aes(x = observed, y = predicted),
     fill = 'grey50', color = 'grey70', shape = 21
   ) +
   geom_abline(slope = 1, intercept = 0, color = 'orange', linewidth = 1) +
@@ -183,20 +175,7 @@ ggsave("residual_histogram.jpg", plot = last_plot(), path = "output/RF/")
 
 
 # Variable Importance
-var_importance <- investigate_var_importance(model2)
-var_names <- names(var_importance$avg_var_props)
-var_importance_df <- data.frame(
-  variable = var_names,
-  inc_prop = var_importance$avg_var_props[var_names] * 100
-)
-
-# Plot Variable Importance
-ggplot(var_importance_df, aes(x = reorder(variable, inc_prop), y = inc_prop, fill = variable)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  theme_minimal(base_family = "sans", base_size = 14) +
-  theme(panel.background = element_rect(fill = "white"), legend.position = "none") +
-  labs(title = "Variable Importance", x = "Variables", y = "Importance (%)")
+varImpPlot(model2 , sort = TRUE , n.var = 10 , main = "Variable Importance Random Forest")
 
 ggsave("variable_importance.jpg", plot = last_plot(), path = "output/RF/")
 
@@ -235,7 +214,7 @@ for (var in names(covs_admin3)) {
 }
 
 # Predict population density for Admin Level 3
-admin3_predictions <- predict(model2, new_data = covs_admin3)
+admin3_predictions <- predict(model2, newdata = covs_admin3)
 
 # Redistribute population to Admin Level 3
 admin3_data <- admin3_covs %>%
