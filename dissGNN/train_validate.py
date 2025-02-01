@@ -11,16 +11,15 @@ def train(model, optimizer, data, loss_fn):
 
 def validate(model, data):
     model.eval()
-    output = model(data.x, data.edge_index, data.edge_weight)
-    prediction = torch.expm1(output.squeeze())
-    # print(prediction)
-    correct = torch.expm1(data.y)
-    # print(correct)
-    eps = 1e-6  # Small value to avoid division by zero
-    error = torch.abs((prediction - correct) / (correct + eps))
-    accuracy = 1 / (1 + error.mean().item()) 
 
-    return accuracy
+    with torch.no_grad():
+
+        output = model(data.x, data.edge_index, data.edge_weight).squeeze()
+        print("1.:", torch.expm1(output[data.val_mask]))
+        print("2.:", torch.expm1(data.y[data.val_mask]))
+        mae = (torch.expm1(output[data.val_mask]) - torch.expm1(data.y[data.val_mask])).abs().mean().item()
+    return mae
+
 
 def train_loop(num_epochs, model, data, optimizer, loss_fn):
     for epoch in range(num_epochs):
