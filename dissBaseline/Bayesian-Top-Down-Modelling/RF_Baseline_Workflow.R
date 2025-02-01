@@ -7,6 +7,7 @@ library(groupdata2)
 library(terra)
 library(caret)
 library(lsa)
+library(e1071)
 
 
 # Specify Paths
@@ -26,8 +27,8 @@ covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
-covs_admin2 <- covs_admin2 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
+# covs_admin2 <- covs_admin2 %>%
+#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
 
 # Calculate mean and standard deviation of covariates for scaling
 cov_stats <- data.frame(
@@ -62,6 +63,7 @@ train_covs <- train %>% select(all_of(colnames(covs_admin2)))
 test   <- admin2_data_scaled[-sample, ]
 test_covs <- test %>% select(all_of(colnames(covs_admin2)))
 
+print(paste0("Skew: ", skewness(admin2_data_scaled$pop_density)))
 
 mtry <- tuneRF(x = train_covs, y = train$pop_density, na.action = na.omit,
        plot = T, trace = T, importance=TRUE,  sampsize=length(train), replace=TRUE)[,1]
@@ -70,7 +72,7 @@ mtry <- tuneRF(x = train_covs, y = train$pop_density, na.action = na.omit,
 
 
 #Fit model
-model2 <- randomForest(x = train_covs, y = train$pop_density, mtry = min(ncol(train_covs), 10), na.action = na.omit, 
+model2 <- randomForest(x = train_covs, y = train$pop_density, mtry = min(ncol(train_covs), 40), na.action = na.omit, 
                       plot = T, trace = T, importance=TRUE, sampsize=length(train), replace=TRUE) 
 
 
@@ -201,8 +203,8 @@ covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_ar
                                      -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
-covs_admin3 <- covs_admin3 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
+# covs_admin3 <- covs_admin3 %>%
+#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
 
 #Standardize covs
 for (var in names(covs_admin3)) {

@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch_geometric.nn import GCNConv
 import torch.nn.functional as F
+import torch
 
 class GCN(nn.Module):
     def __init__(self, input_size, output_size, hidden_layer_size, message_passing_count, drop_prob):
@@ -21,6 +22,7 @@ class GCN(nn.Module):
 
 
     def forward(self, x, edge_index, edge_weight):
+
         for layer in self.conv:
             x = layer(x, edge_index, edge_weight)
             x = F.relu(x)

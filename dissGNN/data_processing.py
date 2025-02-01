@@ -49,6 +49,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     #Add weights for edges
     weights = {"coarse" : 1.0, "fine" : 0.5, "mappings" : 1.5}
     edges["weights_init"] = edges["type"].map(weights)
+    print(edges)
 
     #Normalize weights TODO
 
@@ -78,11 +79,13 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     #Retrieve node features in tensor form
     node_features = process_feature_data(node_features)
     x = torch.tensor(node_features.values, dtype=torch.float)
+    print(node_features.index)
 
     #Convert districts in edges to numbers
     area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
     edges["source_num"] = edges["source"].map(area_to_index)
     edges["target_num"] = edges["target"].map(area_to_index)
+    print(edges)
 
     #Create edge index
     edge_index = torch.tensor(edges[["source_num", "target_num"]].values.T, dtype=torch.long)
@@ -93,7 +96,8 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     #Produce graph data
     data = Data(x=x, edge_index=edge_index)
     data.edge_weight = edge_weights
-    data.y = torch.tensor(node_features["T_TL"].values, dtype=torch.float)
+    data.y = torch.tensor(node_features["population_density"].values, dtype=torch.float)
+    data.y = torch.log1p(data.y)
 
     #Standardize data
     data.x = (data.x - data.x.mean(dim=0)) / (data.x.std(dim=0) + 1e-6)
@@ -116,8 +120,9 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     return data
 
 def process_feature_data(node_features):
-
-    node_features = node_features.drop(columns=["ADM_PCODE", "ADM_PT", "log_population"])
+    node_features["population_density"] = node_features["T_TL"] / node_features["district_area"]
+    node_features.set_index("ADM_PCODE", inplace=True)
+    node_features = node_features.drop(columns=["ADM_PT", "log_population"])
     node_features = node_features.fillna(0)  # Replace NaN values with 0
 
     return node_features
