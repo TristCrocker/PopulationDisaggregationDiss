@@ -3,6 +3,7 @@ import networkx as nx
 import pandas as pd
 import torch
 from torch_geometric.data import Data
+import matplotlib.pyplot as plt
 
 
 # Function to convert a shapefile to represent edges of graph for specific country
@@ -47,7 +48,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
 
     #Add weights for edges
-    weights = {"coarse" : 1.0, "fine" : 0.5, "mappings" : 1.5}
+    weights = {"coarse" : 1.0, "fine" : 0.5, "mappings" : 0.2}
     edges["weights_init"] = edges["type"].map(weights)
     print(edges)
 
@@ -117,10 +118,19 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data.val_mask[positions[train_size:train_size + val_size]] = True
     data.test_mask[positions[train_size + val_size:]] = True
 
+    #Densities plot to check outliers
+    # densities = (data.y).cpu().numpy()  # Convert to NumPy if using PyTorch
+    # plt.hist(densities, bins=50)
+    # plt.show()
+
     return data
 
 def process_feature_data(node_features):
     node_features["population_density"] = node_features["T_TL"] / node_features["district_area"]
+
+    # percentile95 = node_features["population_density"].quantile(0.75)
+    # node_features["population_density"] = node_features["population_density"].clip(upper=percentile95)
+
     node_features.set_index("ADM_PCODE", inplace=True)
     node_features = node_features.drop(columns=["ADM_PT", "log_population"])
     node_features = node_features.fillna(0)  # Replace NaN values with 0
