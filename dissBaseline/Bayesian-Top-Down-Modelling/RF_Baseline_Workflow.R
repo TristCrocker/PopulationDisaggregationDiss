@@ -85,7 +85,7 @@ predicted_values <- predict(model2, newdata = train_covs)
 admin2_predictions <- tibble(
   observed = train$pop_density,
   predicted = predicted_values,
-  residual = predicted - observed,
+  residual = observed - predicted,
   model = "RF"
 )
 
@@ -100,7 +100,9 @@ admin2_metrics <- admin2_predictions %>%
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
     rmse = sqrt(mse),
-    corr = cor(predicted, observed)
+    corr = cor(predicted, observed),
+    r2 = 1 - (sum((observed - predicted)^2) / 
+    sum((observed - mean(observed))^2))
   )
 
 # Print the metrics
@@ -126,7 +128,7 @@ admin2_predictions_test <- data.frame(
 # Combine predictions with observed values
 admin2_predictions_test <- admin2_predictions_test %>%
   mutate(
-    residual = predicted - observed,
+    residual = observed - predicted,
     model = "RF"
   )
 
@@ -141,7 +143,9 @@ admin2_metrics_test <- admin2_predictions_test %>%
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
     rmse = sqrt(mse),
-    corr = cor(predicted, observed)
+    corr = cor(predicted, observed),
+    r2 = 1 - (sum((observed - predicted)^2) / 
+    sum((observed - mean(observed))^2))
   )
 
 # Print the metrics

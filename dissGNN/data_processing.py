@@ -78,7 +78,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
         print("Missing districts in the features file: ", missing_districts)
 
     #Retrieve node features in tensor form
-    node_features = process_feature_data(node_features)
+    node_features, edges = process_feature_data(node_features, edges)
     x = torch.tensor(node_features.values, dtype=torch.float)
     print(node_features.index)
 
@@ -125,16 +125,16 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
 
     return data
 
-def process_feature_data(node_features):
-    node_features["population_density"] = node_features["T_TL"] / node_features["district_area"]
+def process_feature_data(node_features, edges):
+    node_features = node_features.dropna()  # Drop NaN values
 
-    # percentile95 = node_features["population_density"].quantile(0.75)
-    # node_features["population_density"] = node_features["population_density"].clip(upper=percentile95)
+    node_features["population_density"] = node_features["T_TL"] / node_features["district_area"] #Produce population density
+    node_features = node_features[node_features["population_density"] > 0]  # Remove zero-population areas
+    edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])] #Remove edges no longer valid
 
-    node_features.set_index("ADM_PCODE", inplace=True)
-    node_features = node_features.drop(columns=["ADM_PT", "log_population"])
-    node_features = node_features.fillna(0)  # Replace NaN values with 0
-
-    return node_features
+    node_features.set_index("ADM_PCODE", inplace=True) #Set pcode as index
+    node_features = node_features.drop(columns=["ADM_PT", "log_population", "T_TL"]) #Remove unwated features
+    
+    return node_features, edges
 
 

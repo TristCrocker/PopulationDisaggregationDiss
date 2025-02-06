@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     loss_fn = nn.SmoothL1Loss() 
     optimizer = torch.optim.Adam(GCN_model.parameters(), lr = learning_rate, weight_decay = 5e-4)
-    train_validate.train_loop(1500, GCN_model, data, optimizer, loss_fn)
+    train_validate.train_loop(300, GCN_model, data, optimizer, loss_fn)
 
     GCN_model.eval()
 

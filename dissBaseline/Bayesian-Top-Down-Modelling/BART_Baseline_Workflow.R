@@ -15,10 +15,56 @@ output_path <- "output/"
 # Load Combined Data
 admin2_data <- read.csv(paste0(input_path, "covariates/district/all_features_districts.csv"))
 
+# Function to apply Winsorization (clamping extreme values)
+winsorize <- function(x, lower_percentile = 0.2, upper_percentile = 0.8) {
+  lower_bound <- quantile(x, probs = lower_percentile, na.rm = TRUE)
+  upper_bound <- quantile(x, probs = upper_percentile, na.rm = TRUE)
+  x <- ifelse(x < lower_bound, lower_bound, x)  # Clamp lower values
+  x <- ifelse(x > upper_bound, upper_bound, x)  # Clamp upper values
+  return(x)
+}
+
+
+
+
+# Plot distribution of data
+ggplot(admin2_data, aes(x = (T_TL / district_area))) +
+  geom_histogram(fill = "blue", bins = 30, alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Original Population Density Distribution", 
+       x = "Population Density (People per unit area)", 
+       y = "Frequency")
+ggsave("PopulationDensityDistributionPlot.jpg", plot = last_plot(), path = "output/BART/")
+
+# Plot distribution of data
+ggplot(admin2_data, aes(x = log(T_TL / district_area))) +
+  geom_histogram(fill = "blue", bins = 30, alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Log Population Density Distribution", 
+       x = "Log Population Density (People per unit area)", 
+       y = "Frequency")
+ggsave("LogPopulationDensityDistributionPlot.jpg", plot = last_plot(), path = "output/BART/")
+
+#Remove population counts of 0
+admin2_data <- admin2_data %>%
+  filter(T_TL > 0)
+
 # Define response variable as log of population density
 admin2_data <- admin2_data %>%
   mutate(pop_density = log(T_TL / district_area)) %>%
   filter(!is.na(pop_density))
+
+admin2_data <- admin2_data %>%
+  mutate(pop_density = winsorize(pop_density))
+
+# Plot distribution of data
+ggplot(admin2_data, aes(x = (pop_density))) +
+  geom_histogram(fill = "blue", bins = 30, alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Original Population Density Distribution Clamped", 
+       x = "Population Density (People per unit area)", 
+       y = "Frequency")
+ggsave("PopulationDensityDistributionPlotClamped.jpg", plot = last_plot(), path = "output/BART/")
 
 # Select covariates (exclude identifiers and response-related columns)
 covs_admin2 <- admin2_data %>%
@@ -48,7 +94,7 @@ admin2_data_scaled <- admin2_data %>%
   select(ADM2_PT, T_TL, pop_density) %>%
   cbind(covs_admin2)
 
-set.seed(1)
+set.seed(123)
 #use 70% of dataset as training set and 30% as test set
 smp_size <- floor(0.70 * nrow(admin2_data_scaled))
 
@@ -92,9 +138,9 @@ admin2_predictions <- model2$y_hat_train %>% as_tibble()
 admin2_predictions <- admin2_predictions %>%
   cbind(train$pop_density, admin2_CI) %>%
   mutate(
-    observed = train$pop_density,
-    predicted = value,
-    residual = predicted - observed,
+    observed = exp(train$pop_density),
+    predicted = exp(value),
+    residual = observed - predicted,
     model = "BART"
   )
 
@@ -109,8 +155,11 @@ admin2_metrics <- admin2_predictions %>%
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
     rmse = sqrt(mse),
+    mape = mean(abs((observed - predicted) / observed)) * 100,
     corr = cor(predicted, observed),
-    In_IC = mean(observed < ci_lower_bd & observed > ci_upper_bd) * 100
+    In_IC = mean(observed < ci_lower_bd & observed > ci_upper_bd) * 100,
+    r2 = 1 - (sum((observed - predicted)^2) / 
+    sum((observed - mean(observed))^2))
   )
 
 # Print the metrics
@@ -129,8 +178,8 @@ predicted_values <- predict(model2, new_data = test_covs)
 
 # Create a data frame for predictions and observed values
 admin2_predictions_test <- data.frame(
-  predicted = predicted_values,    
-  observed = test$pop_density     
+  predicted = exp(predicted_values),
+  observed = exp(test$pop_density)
 )
 
 # Compute credible intervals
@@ -142,7 +191,7 @@ admin2_CI_test <- calc_credible_intervals(model2, new_data = test_covs) %>%
 admin2_predictions_test <- admin2_predictions_test %>%
   cbind(test$pop_density, admin2_CI_test) %>%
   mutate(
-    residual = predicted - observed,
+    residual = observed - predicted,
     model = "BART"
   )
 
@@ -157,8 +206,11 @@ admin2_metrics_test <- admin2_predictions_test %>%
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
     rmse = sqrt(mse),
+    mape = mean(abs((observed - predicted) / observed)) * 100,
     corr = cor(predicted, observed),
-    In_IC = mean(observed < ci_lower_bd & observed > ci_upper_bd) * 100
+    In_IC = mean(observed < ci_lower_bd & observed > ci_upper_bd) * 100,
+    r2 = 1 - (sum((observed - predicted)^2) / 
+    sum((observed - mean(observed))^2))
   )
 
 # Print the metrics
