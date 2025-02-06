@@ -11,17 +11,17 @@ if __name__ == "__main__":
     input_size = num_features
     output_size = 1
     hidden_size = 32
-    message_passing_count = 6
-    drop_prob = 0.2
-    learning_rate = 1e-4
+    message_passing_count = 3
+    drop_prob = 0.3
+    learning_rate = 4e-5
 
-    GCN_model = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    model = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
     loss_fn = nn.SmoothL1Loss() 
-    optimizer = torch.optim.Adam(GCN_model.parameters(), lr = learning_rate, weight_decay = 5e-4)
-    train_validate.train_loop(300, GCN_model, data, optimizer, loss_fn)
+    optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate, weight_decay = 1e-3)
+    train_validate.train_loop(600, model, data, optimizer, loss_fn)
 
-    GCN_model.eval()
+    model.eval()
 
     #Predict admin3 
     # with torch.no_grad():

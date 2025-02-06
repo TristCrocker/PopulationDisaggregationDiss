@@ -25,6 +25,7 @@ def validate(model, data, e=1e-6):
         print(f"Max Actual: {actual.max().item()}, Min Actual: {actual.min().item()}")
         print(f"Max Predicted: {predicted.max().item()}, Min Predicted: {predicted.min().item()}")
         
+
         # Check if any actual values are zero
         zero_count = (actual == 0).sum().item()
         print(f"Zero Actual Values: {zero_count}")
