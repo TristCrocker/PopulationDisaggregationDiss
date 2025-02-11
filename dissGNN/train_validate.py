@@ -1,4 +1,5 @@
 import torch
+from sklearn.preprocessing import StandardScaler
 
 def train(model, optimizer, data, loss_fn):
     model.train()
@@ -10,37 +11,43 @@ def train(model, optimizer, data, loss_fn):
     return loss.item()
 
 def validate(model, data, e=1e-6):
-    model.eval()
 
     with torch.no_grad():
 
         output = model(data.x, data.edge_index, data.edge_weight).squeeze()
 
+
         # Compute MAPE
         actual = torch.expm1(data.y[data.val_mask])  # Convert log values back to original scale
+        # actual = scaler.inverse_transform(actual)
         predicted = torch.expm1(output[data.val_mask])  # Convert log predictions back to original scale
-        
+        # predicted = scaler.inverse_transform(predicted)
 
-        # Debug: Print max and min values
-        print(f"Max Actual: {actual.max().item()}, Min Actual: {actual.min().item()}")
-        print(f"Max Predicted: {predicted.max().item()}, Min Predicted: {predicted.min().item()}")
-        
+        # Compute MAE
+        mae = torch.abs(predicted - actual).mean().item()
 
-        # Check if any actual values are zero
-        zero_count = (actual == 0).sum().item()
-        print(f"Zero Actual Values: {zero_count}")
+        # Compute RMSE
+        mse = torch.mean((predicted - actual) ** 2)
+        rmse = torch.sqrt(mse).item()
 
+        # Compute MAPE (Avoid division by zero)
+        mape = (torch.abs((predicted - actual) / (actual + e))).mean().item() * 100  
 
-        mape = (torch.abs((predicted - actual) / actual + e)).mean().item() * 100  # Convert to percentage
+        # Compute R² (Coefficient of Determination)
+        ss_total = torch.sum((actual - actual.mean()) ** 2)
+        ss_residual = torch.sum((actual - predicted) ** 2)
+        r2 = 1 - (ss_residual / (ss_total + e)).item()  # Add epsilon to avoid div by zero
 
-    return mape
+    return mae, mape, rmse, r2
 
 def train_loop(num_epochs, model, data, optimizer, loss_fn):
     for epoch in range(num_epochs):
         loss = train(model, optimizer, data, loss_fn)
-        accuracy = validate(model, data)
-        print("Epoch Number: ", epoch, ", Loss: ", loss, ", Validation MAPE: ", accuracy, ".")
+        mae, mape, rmse, r2 = validate(model, data)
+        
+        print("Epoch Number: ", epoch, ", Loss: ", loss, ", Validation MAE: ", mae, ", Validation MAPE: ", mape, ", Validation RMSE: ", rmse, ", Validation R^2: ", r2, ".")
     
+    return mae, mape, rmse, r2
 
 
     

@@ -2,8 +2,10 @@ import geopandas as gpd
 import networkx as nx
 import pandas as pd
 import torch
+import numpy as np
 from torch_geometric.data import Data
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import StandardScaler
 
 
 # Function to convert a shapefile to represent edges of graph for specific country
@@ -48,7 +50,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
 
     #Add weights for edges
-    weights = {"coarse" : 1.0, "fine" : 0.5, "mappings" : 0.2}
+    weights = {"coarse" : 0.5, "fine" : 1, "mappings" : 2}
     edges["weights_init"] = edges["type"].map(weights)
     print(edges)
 
@@ -78,15 +80,9 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
         print("Missing districts in the features file: ", missing_districts)
 
     #Retrieve node features in tensor form
-    node_features, edges = process_feature_data(node_features, edges)
-    x = torch.tensor(node_features.values, dtype=torch.float)
-    print(node_features.index)
+    x_features, y_feature, edges = process_feature_data(node_features, edges)
 
-    #Convert districts in edges to numbers
-    area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
-    edges["source_num"] = edges["source"].map(area_to_index)
-    edges["target_num"] = edges["target"].map(area_to_index)
-    print(edges)
+    x = torch.tensor(x_features, dtype=torch.float)
 
     #Create edge index
     edge_index = torch.tensor(edges[["source_num", "target_num"]].values.T, dtype=torch.long)
@@ -97,11 +93,8 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     #Produce graph data
     data = Data(x=x, edge_index=edge_index)
     data.edge_weight = edge_weights
-    data.y = torch.tensor(node_features["population_density"].values, dtype=torch.float)
-    data.y = torch.log1p(data.y)
-
-    #Standardize data
-    data.x = (data.x - data.x.mean(dim=0)) / (data.x.std(dim=0) + 1e-6)
+    data.y = torch.tensor(y_feature.values, dtype=torch.float)
+    
 
     #Train/val/test split
     node_nums = data.num_nodes
@@ -133,8 +126,23 @@ def process_feature_data(node_features, edges):
     edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])] #Remove edges no longer valid
 
     node_features.set_index("ADM_PCODE", inplace=True) #Set pcode as index
-    node_features = node_features.drop(columns=["ADM_PT", "log_population", "T_TL"]) #Remove unwated features
-    
-    return node_features, edges
+
+
+    y_feature = node_features["population_density"]
+    x_unscaled = node_features.drop(columns=["population_density", "ADM_PT", "log_population", "T_TL", "district_area"])
+
+    #Log population density
+    y_feature = np.log1p(y_feature)
+
+    # Standardize x (features), but NOT y
+    scaler = StandardScaler()
+    x_features = scaler.fit_transform(x_unscaled)
+
+    #Convert districts in edges to numbers
+    area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
+    edges["source_num"] = edges["source"].map(area_to_index)
+    edges["target_num"] = edges["target"].map(area_to_index)
+
+    return x_features, y_feature, edges
 
 

@@ -9,13 +9,16 @@ library(caret)
 library(lsa)
 library(e1071)
 
-
 # Specify Paths
 input_path <- "data/"  # Adjust path as needed
 output_path <- "output/"
 
 # Load Combined Data
 admin2_data <- read.csv(paste0(input_path, "covariates/district/all_features_districts.csv"))
+
+#Remove population counts of 0
+admin2_data <- admin2_data %>%
+  filter(T_TL > 0)
 
 # Define response variable as log of population density
 admin2_data <- admin2_data %>%
@@ -83,8 +86,8 @@ predicted_values <- predict(model2, newdata = train_covs)
 
 # Create a tibble combining predictions and observed values
 admin2_predictions <- tibble(
-  observed = train$pop_density,
-  predicted = predicted_values,
+  observed = exp(train$pop_density),
+  predicted = exp(predicted_values),
   residual = observed - predicted,
   model = "RF"
 )
@@ -99,6 +102,7 @@ admin2_metrics <- admin2_predictions %>%
     Imprecision = sd(residual),
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
+    mape = mean(abs((observed - predicted) / observed)) * 100,
     rmse = sqrt(mse),
     corr = cor(predicted, observed),
     r2 = 1 - (sum((observed - predicted)^2) / 
@@ -106,23 +110,23 @@ admin2_metrics <- admin2_predictions %>%
   )
 
 # Print the metrics
-print("Goodness-of-fit metrics:")
+print("Goodness-of-fit metrics Train:")
 print(admin2_metrics)
 
 # Save metrics to a CSV file
 write.csv(admin2_metrics, paste0(output_path, "RF/model_metrics.csv"), row.names = FALSE)
 
 # Print the admin2_predictions for verification
-print("Admin Level 2 Predictions:")
-print(admin2_predictions)
+# print("Admin Level 2 Predictions:")
+# print(admin2_predictions)
 
 #Predictions on test data
 predicted_values <- predict(model2, newdata = test_covs)
 
 # Create a data frame for predictions and observed values
 admin2_predictions_test <- data.frame(
-  predicted = predicted_values,
-  observed = test$pop_density
+  predicted = exp(predicted_values),
+  observed = exp(test$pop_density)
 )
 
 # Combine predictions with observed values
@@ -142,6 +146,7 @@ admin2_metrics_test <- admin2_predictions_test %>%
     Imprecision = sd(residual),
     Inaccuracy = mean(abs(residual)),
     mse = mean(residual^2),
+    mape = mean(abs((observed - predicted) / observed)) * 100,
     rmse = sqrt(mse),
     corr = cor(predicted, observed),
     r2 = 1 - (sum((observed - predicted)^2) / 
@@ -149,7 +154,7 @@ admin2_metrics_test <- admin2_predictions_test %>%
   )
 
 # Print the metrics
-print("Goodness-of-fit metrics:")
+print("Goodness-of-fit metrics Test:")
 print(admin2_metrics_test)
 
 # Save metrics to a CSV file

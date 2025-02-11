@@ -6,6 +6,7 @@ library(feather)
 library(groupdata2)
 library(terra)
 library(caret)
+library(dplyr)
 
 
 # Specify Paths
@@ -15,16 +16,14 @@ output_path <- "output/"
 # Load Combined Data
 admin2_data <- read.csv(paste0(input_path, "covariates/district/all_features_districts.csv"))
 
-# Function to apply Winsorization (clamping extreme values)
-winsorize <- function(x, lower_percentile = 0.2, upper_percentile = 0.8) {
-  lower_bound <- quantile(x, probs = lower_percentile, na.rm = TRUE)
-  upper_bound <- quantile(x, probs = upper_percentile, na.rm = TRUE)
-  x <- ifelse(x < lower_bound, lower_bound, x)  # Clamp lower values
-  x <- ifelse(x > upper_bound, upper_bound, x)  # Clamp upper values
-  return(x)
-}
-
-
+# # Function to apply Winsorization (clamping extreme values)
+# winsorize <- function(x, lower_percentile = 0.2, upper_percentile = 0.8) {
+#   lower_bound <- quantile(x, probs = lower_percentile, na.rm = TRUE)
+#   upper_bound <- quantile(x, probs = upper_percentile, na.rm = TRUE)
+#   x <- ifelse(x < lower_bound, lower_bound, x)  # Clamp lower values
+#   x <- ifelse(x > upper_bound, upper_bound, x)  # Clamp upper values
+#   return(x)
+# }
 
 
 # Plot distribution of data
@@ -54,8 +53,8 @@ admin2_data <- admin2_data %>%
   mutate(pop_density = log(T_TL / district_area)) %>%
   filter(!is.na(pop_density))
 
-admin2_data <- admin2_data %>%
-  mutate(pop_density = winsorize(pop_density))
+# admin2_data <- admin2_data %>%
+#   mutate(pop_density = winsorize(pop_density))
 
 # Plot distribution of data
 ggplot(admin2_data, aes(x = (pop_density))) +
@@ -66,13 +65,33 @@ ggplot(admin2_data, aes(x = (pop_density))) +
        y = "Frequency")
 ggsave("PopulationDensityDistributionPlotClamped.jpg", plot = last_plot(), path = "output/BART/")
 
+
+#Ensure OSM covariates are in density units
+admin2_data <- admin2_data %>%
+  mutate(across(starts_with("osm"), ~ . / district_area))
+
+#Ensure building_count covariates are in density units
+admin2_data <- admin2_data %>%
+  mutate(building_count = building_count / district_area)
+
+admin2_data <- admin2_data %>%
+  mutate(building_area = building_area / district_area)
+
 # Select covariates (exclude identifiers and response-related columns)
 covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
+
+
+print(colnames(covs_admin2))
+
+
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
+# covs_admin2 <- covs_admin2 %>%
+#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
+
 covs_admin2 <- covs_admin2 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw)
 
 # Calculate mean and standard deviation of covariates for scaling
 cov_stats <- data.frame(
@@ -163,15 +182,15 @@ admin2_metrics <- admin2_predictions %>%
   )
 
 # Print the metrics
-print("Goodness-of-fit metrics:")
+print("Goodness-of-fit metrics Train:")
 print(admin2_metrics)
 
 # Save metrics to a CSV file
 write.csv(admin2_metrics, paste0(output_path, "BART/model_metrics.csv"), row.names = FALSE)
 
 # Print the admin2_predictions for verification
-print("Admin Level 2 Predictions:")
-print(admin2_predictions)
+# print("Admin Level 2 Predictions:")
+# print(admin2_predictions)
 
 #Predictions on test data
 predicted_values <- predict(model2, new_data = test_covs)
@@ -214,7 +233,7 @@ admin2_metrics_test <- admin2_predictions_test %>%
   )
 
 # Print the metrics
-print("Goodness-of-fit metrics:")
+print("Goodness-of-fit metrics Test:")
 print(admin2_metrics_test)
 
 # Save metrics to a CSV file
