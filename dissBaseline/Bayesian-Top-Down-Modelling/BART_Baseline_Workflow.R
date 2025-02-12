@@ -82,7 +82,6 @@ covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
 
-
 print(colnames(covs_admin2))
 
 
@@ -132,7 +131,7 @@ set.seed(1234)
 model2 <- bartMachine(
   X = train_covs,
   y = train$pop_density,
-  k = 5, nu = 10, q = 0.75, num_trees = 700, use_missing_data = TRUE
+  k = 3, nu = 10, q = 0.75, num_trees = 700, use_missing_data = TRUE
 )
 # model2 <- bartMachineCV(
 #   X = covs_admin2,
