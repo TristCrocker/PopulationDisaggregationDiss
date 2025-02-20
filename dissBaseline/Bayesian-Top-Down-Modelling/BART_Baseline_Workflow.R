@@ -1,5 +1,6 @@
 # Load necessary libraries
 library(tidyverse)
+options(java.parameters = "-Xmx8g")
 library(bartMachine)
 library(tictoc)
 library(feather)
@@ -82,9 +83,6 @@ covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
 
-print(colnames(covs_admin2))
-
-
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
 # covs_admin2 <- covs_admin2 %>%
 #   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
@@ -125,14 +123,62 @@ train_covs <- train %>% select(all_of(colnames(covs_admin2)))
 test   <- admin2_data_scaled[-sample, ]
 test_covs <- test %>% select(all_of(colnames(covs_admin2)))
 
+################ Hyperparameter search
+# Define the hyperparameter grid
+# hyper_grid <- expand.grid(
+#   num_trees = c(100, 200, 500, 700),  # Number of trees
+#   k = c(2, 3, 4),  # Regularization parameter
+#   nu = c(3, 5, 10),  # Shape of variance prior
+#   q = c(0.25, 0.5, 0.75)  # Quantile of the variance prior
+# )
+
+
+
+# # Initialize results dataframe
+# results <- data.frame()
+
+# # Loop over each hyperparameter combination
+# for (i in 1:nrow(hyper_grid)) {
+#   set.seed(1234)  # Ensure reproducibility
+  
+#   # Train the BART model with current parameters
+#   model <- bartMachine(
+#     X = train_covs, 
+#     y = train$pop_density,
+#     num_trees = hyper_grid$num_trees[i],
+#     k = hyper_grid$k[i],
+#     nu = hyper_grid$nu[i],
+#     q = hyper_grid$q[i],
+#     use_missing_data = TRUE,
+#     verbose = FALSE  # Suppress output for cleaner execution
+#   )
+  
+#   # Extract Out-of-Bag RMSE as the evaluation metric
+#   oob_rmse <- model$rmse
+#   print(oob_rmse)
+  
+#   # Store results
+#   new_row <- data.frame(hyper_grid[i, ], oob_rmse = oob_rmse)
+#   results <- rbind(results, new_row)
+# }
+
+# Find the best hyperparameter combination
+# best_params <- results[which.min(results$oob_rmse), ]
+
+# # Print the best hyperparameters
+# print("Best Hyperparameters for BART:")
+# print(best_params)
+
+################## Hyperparameter search
 
 # Train the BART Model
 set.seed(1234)
 model2 <- bartMachine(
   X = train_covs,
   y = train$pop_density,
-  k = 3, nu = 10, q = 0.75, num_trees = 700, use_missing_data = TRUE
+  k = 1, nu = 3, q = 0.25, num_trees = 500, use_missing_data = TRUE
 )
+
 # model2 <- bartMachineCV(
 #   X = covs_admin2,
 #   y = admin2_data_scaled$pop_density,
@@ -291,6 +337,10 @@ data.table::fwrite(var_importance_df, paste0(output_path, "BART/BART_var_importa
 # Load Admin Level 3 covariates
 admin3_covs <- read.csv(paste0(input_path, "covariates/postos/all_features_postos.csv"))
 
+#Remove population counts of 0
+admin3_covs <- admin3_covs %>%
+  filter(T_TL > 0)
+
 # Load Admin 2-to-3 mapping
 admin_mapping <- read.csv(paste0(input_path, "mappings/mozam_admin_2_to_3_mappings.csv"))
 
@@ -299,25 +349,40 @@ admin3_covs <- admin3_covs %>%
   left_join(admin_mapping, by = c("ADM3_PT", "ADM3_PCODE"))
 
 
+#Ensure OSM covariates are in density units
+admin3_covs <- admin3_covs %>%
+  mutate(across(starts_with("osm"), ~ . / district_area))
+
+#Ensure building_count covariates are in density units
+admin3_covs <- admin3_covs %>%
+  mutate(building_count = building_count / district_area)
+
+admin3_covs <- admin3_covs %>%
+  mutate(building_area = building_area / district_area)
+
 # Remove metadata
 covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_area, -log_population,
                                      -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
 covs_admin3 <- covs_admin3 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw)
 
-#Standardize covs
-for (var in names(covs_admin3)) {
-  if (var %in% cov_stats$Covariate) {
-    var_mean <- cov_stats$Mean[cov_stats$Covariate == var]
-    var_sd <- cov_stats$Std_Dev[cov_stats$Covariate == var]
-    covs_admin3[[var]] <- (covs_admin3[[var]] - var_mean) / var_sd
-  }
-}
+
+
+# Calculate mean and standard deviation of covariates for scaling
+cov3_stats <- data.frame(
+  Covariate = colnames(covs_admin3),
+  Mean = apply(covs_admin3, 2, mean, na.rm = TRUE),
+  Std_Dev = apply(covs_admin3, 2, sd, na.rm = TRUE)
+)
+
+# Apply scaling function
+covs_admin3 <- apply(covs_admin3, 2, stdize) %>% as_tibble()
 
 # Predict population density for Admin Level 3
 admin3_predictions <- predict(model2, new_data = covs_admin3)
+
 
 # Redistribute population to Admin Level 3
 admin3_data <- admin3_covs %>%
@@ -352,23 +417,41 @@ admin3_data %>%
 
 ggsave("predicted_population_histogram.jpg", plot = last_plot(), path = "output/BART/")
 
-
 # Final accuracy checks, predicted admin level 3 population counts vs actual
 admin3_data_clean <- admin3_data %>% drop_na(T_TL, predicted_population)
 actual_pop <- admin3_data_clean$T_TL
-predicted_pop <- admin3_data_clean$predicted_population
+actual_density <- admin3_data_clean$T_TL / admin3_data_clean$district_area
+predicted_pop_disag <- admin3_data_clean$predicted_population
+predicted_density <- admin3_data_clean$predicted_density
 
-# Calculate RMSE
-rmse <- sqrt(mean((actual_pop - predicted_pop)^2))
+# Calculate MAE
+mae_dyas <- mean(abs(actual_pop - predicted_pop_disag))
 
 # Calculate MAPE
-mape <- mean(abs((actual_pop - predicted_pop) / actual_pop)) * 100
+mape_dyas <- mean(abs((actual_pop - predicted_pop_disag) / actual_pop)) * 100
 
 # Calculate R-squared
-r_squared <- cor(actual_pop, predicted_pop)^2
+r_squared_dyas <- cor(actual_pop, predicted_pop_disag)^2
 
 # Print results
-print("Accuracy Metrics:\n")
-print(sprintf("RMSE: %.2f\n", rmse))
-print(sprintf("MAPE: %.2f%%\n", mape))
-print(sprintf("R-squared: %.3f\n", r_squared))
+print("Accuracy Metrics Dyas:")
+
+print(sprintf("MAE: %.2f", mae_dyas))
+print(sprintf("MAPE: %.2f%%", mape_dyas))
+print(sprintf("R-squared: %.3f", r_squared_dyas))
+cat("\n")
+
+# Calculate MAE
+mae <- mean(abs(actual_density - predicted_density))
+
+# Calculate MAPE
+mape <- mean(abs((actual_density - predicted_density) / actual_density)) * 100
+
+# Calculate R-squared
+r_squared <- cor(actual_density, predicted_density)^2
+
+# Print results
+print("Accuracy Metrics Normal:")
+print(sprintf("MAE: %.2f", mae))
+print(sprintf("MAPE: %.2f%%", mape))
+print(sprintf("R-squared: %.3f", r_squared))
