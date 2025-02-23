@@ -25,20 +25,35 @@ admin2_data <- admin2_data %>%
   mutate(pop_density = log(T_TL / district_area)) %>%
   filter(!is.na(pop_density))
 
+
+#Ensure OSM covariates are in density units
+admin2_data <- admin2_data %>%
+  mutate(across(starts_with("osm"), ~ . / district_area))
+
+#Ensure building_count covariates are in density units
+admin2_data <- admin2_data %>%
+  mutate(building_count = building_count / district_area)
+
+admin2_data <- admin2_data %>%
+  mutate(building_area = building_area / district_area)
+
+
 # Select covariates (exclude identifiers and response-related columns)
 covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
+
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
 # covs_admin2 <- covs_admin2 %>%
-#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
+#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_pofw)
 
-# Calculate mean and standard deviation of covariates for scaling
+# Calculate mean and standard deviation of covariates for scaling  
 cov_stats <- data.frame(
   Covariate = colnames(covs_admin2),
   Mean = apply(covs_admin2, 2, mean, na.rm = TRUE),
   Std_Dev = apply(covs_admin2, 2, sd, na.rm = TRUE)
 )
+
 
 # Scaling function to standardize covariates
 stdize <- function(x) {
@@ -68,17 +83,60 @@ test_covs <- test %>% select(all_of(colnames(covs_admin2)))
 
 print(paste0("Skew: ", skewness(admin2_data_scaled$pop_density)))
 
-mtry <- tuneRF(x = train_covs, y = train$pop_density, na.action = na.omit,
-       plot = T, trace = T, importance=TRUE,  sampsize=length(train), replace=TRUE)[,1]
+# mtry <- tuneRF(x = train_covs, y = train$pop_density, na.action = na.omit,
+#        plot = T, trace = T, importance=TRUE,  sampsize=length(train), replace=TRUE)[,1]
 
 # optimalMtry <- mtry[which.min(mtry[,2]), 1]
 
 
-#Fit model
-model2 <- randomForest(x = train_covs, y = train$pop_density, mtry = min(ncol(train_covs), 40), na.action = na.omit, 
-                      plot = T, trace = T, importance=TRUE, sampsize=length(train), replace=TRUE) 
 
 
+################################# Hyperparameter searching
+# hyper_grid <- expand.grid(
+#   mtry = optimal_mtry,
+#   ntree = c(100, 300, 500, 1000),   
+#   nodesize = c(1, 5, 10),           
+#   sampsize = c(0.5, 0.7, 1.0) * nrow(train)
+# )
+
+# # Init
+# results <- data.frame()
+
+
+# for (i in 1:nrow(hyper_grid)) {
+#   set.seed(123)
+  
+#   model <- randomForest(
+#     x = train_covs, 
+#     y = train$pop_density, 
+#     mtry = hyper_grid$mtry[i], 
+#     ntree = hyper_grid$ntree[i], 
+#     nodesize = hyper_grid$nodesize[i],
+#     sampsize = hyper_grid$sampsize[i],
+#     na.action = na.omit,
+#     importance = TRUE
+#   )
+  
+#   # Store results
+#   oob_error <- model$mse[length(model$mse)]  # Final OOB error
+#   results <- rbind(results, cbind(hyper_grid[i,], oob_error))
+# }
+
+# # Find best hyperparameter combination
+# best_params <- results[which.min(results$oob_error), ]
+# print("Best: ", str(best_params))
+##################### Hyperparameter search
+
+
+
+
+# #Fit model
+# model2 <- randomForest(x = train_covs, y = train$pop_density, mtry = min(ncol(train_covs), 40), na.action = na.omit, 
+#                       plot = T, trace = T, importance=TRUE, sampsize=length(train), replace=TRUE) 
+
+#Fit Best Model
+model2 <- randomForest(x = train_covs, y = train$pop_density, mtry = 8, na.action = na.omit, ntree = 300, nodesize = 1, 
+                      plot = T, trace = T, importance=TRUE, sampsize=108, replace=TRUE) 
 
 
 # Predictions on training data
@@ -264,19 +322,38 @@ ggsave("predicted_population_histogram.jpg", plot = last_plot(), path = "output/
 # Final accuracy checks, predicted admin level 3 population counts vs actual
 admin3_data_clean <- admin3_data %>% drop_na(T_TL, predicted_population)
 actual_pop <- admin3_data_clean$T_TL
-predicted_pop <- admin3_data_clean$predicted_population
+actual_density <- admin3_data_clean$T_TL / admin3_data_clean$district_area
+predicted_pop_disag <- admin3_data_clean$predicted_population
+predicted_density <- admin3_data_clean$predicted_density
 
-# Calculate RMSE
-rmse <- sqrt(mean((actual_pop - predicted_pop)^2))
+# Calculate MAE
+mae_dyas <- mean(abs(actual_pop - predicted_pop_disag))
 
 # Calculate MAPE
-mape <- mean(abs((actual_pop - predicted_pop) / actual_pop)) * 100
+mape_dyas <- mean(abs((actual_pop - predicted_pop_disag) / actual_pop)) * 100
 
 # Calculate R-squared
-r_squared <- cor(actual_pop, predicted_pop)^2
+r_squared_dyas <- cor(actual_pop, predicted_pop_disag)^2
 
 # Print results
-print("Accuracy Metrics:\n")
-print(sprintf("RMSE: %.2f\n", rmse))
-print(sprintf("MAPE: %.2f%%\n", mape))
-print(sprintf("R-squared: %.3f\n", r_squared))
+print("Accuracy Metrics Dyasymetric (WorldPop Admin 3):")
+
+print(sprintf("MAE: %.2f", mae_dyas))
+print(sprintf("MAPE: %.2f%%", mape_dyas))
+print(sprintf("R-squared: %.3f", r_squared_dyas))
+cat("\n")
+
+# Calculate MAE
+mae <- mean(abs(actual_density - predicted_density))
+
+# Calculate MAPE
+mape <- mean(abs((actual_density - predicted_density) / actual_density)) * 100
+
+# Calculate R-squared
+r_squared <- cor(actual_density, predicted_density)^2
+
+# Print results
+print("Accuracy Metrics Normal (WorldPop Admin 3):")
+print(sprintf("MAE: %.2f", mae))
+print(sprintf("MAPE: %.2f%%", mape))
+print(sprintf("R-squared: %.3f", r_squared))
