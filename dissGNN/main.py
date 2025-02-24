@@ -25,25 +25,33 @@ if __name__ == "__main__":
     best_mape = float("inf")
     best_params = {}
 
-    for param in hyperparam_combinations:
-        hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = param
+    # ------------ Hyper parameter search
+    # for param in hyperparam_combinations:
+    #     hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = param
 
-        model_inst = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    #     model_inst = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
-        loss_fn = nn.SmoothL1Loss() 
-        optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
-        mae, mape, rmse, r2 = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
+    #     loss_fn = nn.SmoothL1Loss() 
+    #     optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
+    #     mae, mape, rmse, r2 = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
 
-        model_inst.eval()
+    #     model_inst.eval()
 
-        if mape < best_mape:
-            best_mape = mape
-            best_params = params
+    #     if mape < best_mape:
+    #         best_mape = mape
+    #         best_params = params
             
-        print(best_params)
-        print(best_mape)
+    #     print(best_params)
+    #     print(best_mape)
+    # print(best_mape, "\n", best_params)
+    # --------------
     
-    print(best_mape, "\n", best_params)
+    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 32, 6, 0.3,5e-5, 5e-4
 
+    model_inst = model.GAT(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
+    loss_fn = nn.SmoothL1Loss() 
+    optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
+    mae, mape, rmse, r2 = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
 
+    model_inst.eval()

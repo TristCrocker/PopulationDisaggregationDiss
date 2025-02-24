@@ -5,47 +5,48 @@ def train(model, optimizer, data, loss_fn):
     model.train()
     optimizer.zero_grad()
     output = model(data.x, data.edge_index, data.edge_weight)
+
     loss = loss_fn(torch.expm1(output[data.train_mask].squeeze()), torch.expm1(data.y[data.train_mask]))
     loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.8)
     optimizer.step()
     return loss.item()
 
-def validate(model, data, e=1e-6):
+def validate(model, data, mask, e=1e-6):
+    model.eval()
 
-    with torch.no_grad():
+    output = model(data.x, data.edge_index, data.edge_weight).squeeze()
 
-        output = model(data.x, data.edge_index, data.edge_weight).squeeze()
+    # Compute MAPE
+    actual = torch.expm1(data.y[mask])  # Convert log values back to original scale
+    # actual = scaler.inverse_transform(actual)
+    predicted = torch.expm1(output[mask])  # Convert log predictions back to original scale
+    # predicted = scaler.inverse_transform(predicted)
 
+    # Compute MAE
+    mae = torch.abs(predicted - actual).mean().item()
 
-        # Compute MAPE
-        actual = torch.expm1(data.y[data.val_mask])  # Convert log values back to original scale
-        # actual = scaler.inverse_transform(actual)
-        predicted = torch.expm1(output[data.val_mask])  # Convert log predictions back to original scale
-        # predicted = scaler.inverse_transform(predicted)
+    # Compute RMSE
+    mse = torch.mean((predicted - actual) ** 2)
+    rmse = torch.sqrt(mse).item()
 
-        # Compute MAE
-        mae = torch.abs(predicted - actual).mean().item()
+    # Compute MAPE (Avoid division by zero)
+    mape = (torch.abs((predicted - actual) / (actual + e))).mean().item() * 100  
 
-        # Compute RMSE
-        mse = torch.mean((predicted - actual) ** 2)
-        rmse = torch.sqrt(mse).item()
+    # Compute R² (Coefficient of Determination)
+    ss_total = torch.sum((actual - actual.mean()) ** 2)
+    ss_residual = torch.sum((actual - predicted) ** 2)
+    r2 = 1 - (ss_residual / (ss_total + e)).item()  # Add epsilon to avoid div by zero
 
-        # Compute MAPE (Avoid division by zero)
-        mape = (torch.abs((predicted - actual) / (actual + e))).mean().item() * 100  
-
-        # Compute R² (Coefficient of Determination)
-        ss_total = torch.sum((actual - actual.mean()) ** 2)
-        ss_residual = torch.sum((actual - predicted) ** 2)
-        r2 = 1 - (ss_residual / (ss_total + e)).item()  # Add epsilon to avoid div by zero
-
-    return mae, mape, rmse, r2
+    return mae, mape, rmse, r2  
 
 def train_loop(num_epochs, model, data, optimizer, loss_fn):
     for epoch in range(num_epochs):
         loss = train(model, optimizer, data, loss_fn)
-        mae, mape, rmse, r2 = validate(model, data)
-        
-        print("Epoch Number: ", epoch, ", Loss: ", loss, ", Validation MAE: ", mae, ", Validation MAPE: ", mape, ", Validation RMSE: ", rmse, ", Validation R^2: ", r2, ".")
+        mae, mape, rmse, r2 = validate(model, data, data.val_mask)
+        print("Val - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", RMSE: ", rmse, ", R^2: ", r2, ".")
+        mae, mape, rmse, r2 = validate(model, data, data.train_mask)
+        print("Test - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", RMSE: ", rmse, ", R^2: ", r2, ".")
     
     return mae, mape, rmse, r2
 

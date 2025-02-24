@@ -34,7 +34,8 @@ def convert_level_mappings_to_edges(mappings_path):
     mappings = pd.read_csv(mappings_path)
     edges = mappings[['ADM2_PCODE', 'ADM3_PCODE']]
     edges = edges.rename(columns={'ADM2_PCODE': 'source', 'ADM3_PCODE': 'target'})
-
+    # edges[["source", "target"]] = edges[["target", "source"]] #Used for producing back-edges
+    print("Mappings: ", edges.to_string())
     return edges
 
 
@@ -50,10 +51,8 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
 
     #Add weights for edges
-    weights = {"coarse" : 0.5, "fine" : 1, "mappings" : 2}
+    weights = {"coarse" : 1, "fine" : 1, "mappings" : 2}
     edges["weights_init"] = edges["type"].map(weights)
-    print(edges)
-
     #Normalize weights TODO
 
     #Load node fgeatures for coarse admin and fine admin level and rename to generealize for concat
@@ -62,16 +61,13 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     
     node_features_coarse = pd.read_csv(features_path_coarse)
     node_features_coarse = node_features_coarse.rename(columns={col_coarse_pcode : "ADM_PCODE", col_coarse_pt : "ADM_PT"})
-    print(len(node_features_coarse["ADM_PT"]))
 
     col_fine_pcode = "ADM" + str(admin_level_fine) + "_PCODE"
     col_fine_pt = "ADM" + str(admin_level_fine) + "_PT"
     node_features_fine = pd.read_csv(features_path_fine)
     node_features_fine = node_features_fine.rename(columns={col_fine_pcode : "ADM_PCODE", col_fine_pt : "ADM_PT"})
-    print(len(node_features_fine["ADM_PT"]))
 
     node_features = pd.concat([node_features_coarse, node_features_fine])
-    print(len(node_features["ADM_PT"]))
     
     # Check if mismatching districts between shape and feature data
     missing_districts = set(edges["source"]).union(set(edges["target"])) - set(node_features["ADM_PCODE"])
@@ -129,12 +125,19 @@ def process_feature_data(node_features, edges):
 
 
     y_feature = node_features["population_density"]
-    x_unscaled = node_features.drop(columns=["population_density", "ADM_PT", "log_population", "T_TL", "district_area"])
+    x_unscaled = node_features.drop(columns=["population_density", "ADM_PT", "log_population", "T_TL"])
+
+    #Convert certain variables into densities (This does nothing)
+    x_unscaled[['building_count', 'building_area', 'osm_traffic', 'osm_transport', 'osm_places', 'osm_pofw', 'osm_pois', 'osm_railways', 'osm_roads']] = x_unscaled[['building_count', 'building_area', 'osm_traffic', 'osm_transport', 'osm_places', 'osm_pofw', 
+                  'osm_pois', 'osm_railways', 'osm_roads']].div(x_unscaled['district_area'], axis=0)
+    
+    #Drop another unneeded column
+    x_unscaled = x_unscaled.drop(columns=['district_area'])
 
     #Log population density
     y_feature = np.log1p(y_feature)
 
-    # Standardize x (features), but NOT y
+    # Standardize x (features)
     scaler = StandardScaler()
     x_features = scaler.fit_transform(x_unscaled)
 

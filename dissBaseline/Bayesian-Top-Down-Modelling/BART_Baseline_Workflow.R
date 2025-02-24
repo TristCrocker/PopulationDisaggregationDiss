@@ -26,7 +26,6 @@ admin2_data <- read.csv(paste0(input_path, "covariates/district/all_features_dis
 #   return(x)
 # }
 
-
 # Plot distribution of data
 ggplot(admin2_data, aes(x = (T_TL / district_area))) +
   geom_histogram(fill = "blue", bins = 30, alpha = 0.7) +
@@ -88,7 +87,7 @@ covs_admin2 <- admin2_data %>%
 #   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
 
 covs_admin2 <- covs_admin2 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw)
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw, DNB)
 
 # Calculate mean and standard deviation of covariates for scaling
 cov_stats <- data.frame(
@@ -366,7 +365,7 @@ covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_ar
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
 covs_admin3 <- covs_admin3 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw)
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw, DNB)
 
 
 
@@ -434,7 +433,7 @@ mape_dyas <- mean(abs((actual_pop - predicted_pop_disag) / actual_pop)) * 100
 r_squared_dyas <- cor(actual_pop, predicted_pop_disag)^2
 
 # Print results
-print("Accuracy Metrics Dyas:")
+print("Accuracy Metrics Dyasymetric (WorldPop Admin 3):")
 
 print(sprintf("MAE: %.2f", mae_dyas))
 print(sprintf("MAPE: %.2f%%", mape_dyas))
@@ -451,7 +450,7 @@ mape <- mean(abs((actual_density - predicted_density) / actual_density)) * 100
 r_squared <- cor(actual_density, predicted_density)^2
 
 # Print results
-print("Accuracy Metrics Normal:")
+print("Accuracy Metrics Normal (WorldPop Admin 3):")
 print(sprintf("MAE: %.2f", mae))
 print(sprintf("MAPE: %.2f%%", mape))
 print(sprintf("R-squared: %.3f", r_squared))

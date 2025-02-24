@@ -1,6 +1,7 @@
 import torch.nn as nn
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv
 import torch.nn.functional as F
+from torch_scatter import scatter_add
 import torch
 
 class GraphSage(nn.Module):
@@ -31,7 +32,7 @@ class GraphSage(nn.Module):
         # Normalize edge weights (Optional, can be removed)
         edge_weight = edge_weight / (edge_weight.max() + 1e-6)  
 
-        for conv in self.convs:
+        for conv in self.conv:
             x = F.dropout(x, p=self.drop_prob, training=self.training)
 
             # Aggregate weighted node features using scatter_add
@@ -51,12 +52,12 @@ class GAT(nn.Module):
 
         #Input to hidden layer mapping
         self.conv = nn.ModuleList()
-        self.conv.append(GATConv(input_size, hidden_layer_size, add_self_loops = False)) 
+        self.conv.append(GATConv(input_size, hidden_layer_size, add_self_loops=True)) 
         
         #Hidden layer to hidden layer mapping
         #Add number of hidden layers to match the number of neighbours
         for i in range(message_passing_count - 1):
-            self.conv.append(GATConv(hidden_layer_size, hidden_layer_size, add_self_loops=False))
+            self.conv.append(GATConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         #Hidden layer to output mapping
         self.linear = nn.Linear(hidden_layer_size, output_size)
@@ -66,7 +67,7 @@ class GAT(nn.Module):
     def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
             x = F.dropout(x, p=self.drop_prob, training = self.training)
-            x = layer(x, edge_index, edge_weight=edge_weight)          
+            x = layer(x, edge_index, edge_attr=edge_weight)          
             # x = F.leaky_relu(x, negative_slope = 0.01)
             x = F.relu6(x)
 
@@ -80,12 +81,12 @@ class GCN(nn.Module):
 
         #Input to hidden layer mapping
         self.conv = nn.ModuleList()
-        self.conv.append(GCNConv(input_size, hidden_layer_size, add_self_loops = False)) 
+        self.conv.append(GCNConv(input_size, hidden_layer_size, add_self_loops = True)) 
         
         #Hidden layer to hidden layer mapping
         #Add number of hidden layers to match the number of neighbours
         for i in range(message_passing_count - 1):
-            self.conv.append(GCNConv(hidden_layer_size, hidden_layer_size, add_self_loops=False))
+            self.conv.append(GCNConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         #Hidden layer to output mapping
         self.linear = nn.Linear(hidden_layer_size, output_size)
@@ -93,10 +94,11 @@ class GCN(nn.Module):
 
     def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
-            x = F.dropout(x, p=self.drop_prob, training = self.training)
-            x = layer(x, edge_index, edge_weight=edge_weight)          
+            
+            x = layer(x, edge_index, edge_weight=edge_weight)      
+            x = F.dropout(x, p=self.drop_prob, training = self.training)    
             # x = F.leaky_relu(x, negative_slope = 0.01)
-            x = F.relu6(x)
+            x = F.relu(x)
 
         x = self.linear(x)
 
