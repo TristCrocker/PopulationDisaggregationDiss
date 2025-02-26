@@ -51,7 +51,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
 
     #Add weights for edges
-    weights = {"coarse" : 1, "fine" : 1, "mappings" : 2}
+    weights = {"coarse" : 1, "fine" : 0.5, "mappings" : 2}
     edges["weights_init"] = edges["type"].map(weights)
     #Normalize weights TODO
 

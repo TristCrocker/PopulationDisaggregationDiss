@@ -41,14 +41,20 @@ def validate(model, data, mask, e=1e-6):
     return mae, mape, rmse, r2  
 
 def train_loop(num_epochs, model, data, optimizer, loss_fn):
+    loss_arr = []
+    val_acc_arr = []
+    train_acc_arr = []
     for epoch in range(num_epochs):
         loss = train(model, optimizer, data, loss_fn)
+        loss_arr.append(loss)
         mae, mape, rmse, r2 = validate(model, data, data.val_mask)
         print("Val - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", RMSE: ", rmse, ", R^2: ", r2, ".")
+        val_acc_arr.append(mape)
         mae, mape, rmse, r2 = validate(model, data, data.train_mask)
-        print("Test - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", RMSE: ", rmse, ", R^2: ", r2, ".")
+        print("Train - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", RMSE: ", rmse, ", R^2: ", r2, ".")
+        train_acc_arr.append(mape)
     
-    return mae, mape, rmse, r2
+    return loss_arr, val_acc_arr, train_acc_arr
 
 
     

@@ -202,13 +202,32 @@ def main():
 
             val_error = (1./(config["n_training_samples"] * graph_y.n_unobserved)) * torch.sum(masked_loss)
 
+            masked_mae = torch.abs(val_samples - graph_y.x)
+            masked_mae = masked_mae[:, val_mask]
+
+            mae = (1.0 / (config["n_training_samples"] * graph_y.n_unobserved)) * masked_mae.sum()
+
+            safe_truth = graph_y.x.clone()
+            safe_truth[safe_truth == 0] = 1e-8  
+            masked_mape = torch.abs((val_samples - safe_truth) / safe_truth)
+            masked_mape = masked_mape[:, val_mask]
+
+            mape = (1.0 / (config["n_training_samples"] * graph_y.n_unobserved)) * masked_mape.sum() * 100
+
             val_error = val_error.item()
+            mae_val = mae.item()
+            mape_val = mape.item()
 
             mean_loss = (total_loss.item() / config["val_interval"])
             total_loss = torch.zeros(1)
 
-            print("Iteration: {}, loss: {:.6}, val_error: {}".format(
-                (iteration_i+1), mean_loss, val_error))
+            print(
+                f"Iteration: {iteration_i+1}, "
+                f"loss (train): {mean_loss:.6f}, "
+                f"MSE (val): {val_error:.6f}, "
+                f"MAE (val): {mae_val:.6f}, "
+                f"MAPE (val): {mape_val:.3f}%"
+            )
 
             wandb.log({
                 "loss": mean_loss,

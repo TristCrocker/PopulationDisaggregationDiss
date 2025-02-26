@@ -172,12 +172,26 @@ print("Goodness-of-fit metrics Train:")
 print(admin2_metrics)
 
 # Save metrics to a CSV file
-write.csv(admin2_metrics, paste0(output_path, "RF/model_metrics.csv"), row.names = FALSE)
+write.csv(admin2_metrics, paste0(output_path, "RF/model_metrics_train.csv"), row.names = FALSE)
 
 # Print the admin2_predictions for verification
 # print("Admin Level 2 Predictions:")
 # print(admin2_predictions)
 
+# Convergence plot
+# oob_error <- model2$err.rate[, "OOB"]
+
+# # 6. Plot OOB error vs. number of trees
+# plot(oob_error, type = "l", 
+#      xlab = "Number of Trees",
+#      ylab = "OOB Error Rate",
+#      main = "OOB Error vs. Number of Trees (Random Forest)")
+
+# Alternatively, randomForest has a built-in plot method:
+# This will show OOB error vs. trees (and class-specific error if multi-class).
+png("output/RF/oob_error_convergence_plot.png", width=600, height=400)
+plot(model2$mse, type="l", xlab="Number of Trees", ylab="OOB MSE")
+dev.off()
 #Predictions on test data
 predicted_values <- predict(model2, newdata = test_covs)
 
@@ -216,7 +230,7 @@ print("Goodness-of-fit metrics Test:")
 print(admin2_metrics_test)
 
 # Save metrics to a CSV file
-write.csv(admin2_metrics_test, paste0(output_path, "RF/model_metrics.csv"), row.names = FALSE)
+write.csv(admin2_metrics_test, paste0(output_path, "RF/model_metrics_test.csv"), row.names = FALSE)
 
 
 # Plot Observed vs. Predicted
