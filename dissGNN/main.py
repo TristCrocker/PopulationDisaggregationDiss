@@ -56,5 +56,6 @@ if __name__ == "__main__":
     loss, val_acc, train_acc = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
 
     visualisations.plot_loss_val_curve(loss, val_acc, train_acc, model_inst)
+    visualisations.plot_graph_structure(data)
 
     model_inst.eval()
