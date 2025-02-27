@@ -60,11 +60,13 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     col_coarse_pt = "ADM" + str(admin_level_coarse) + "_PT"
     
     node_features_coarse = pd.read_csv(features_path_coarse)
+    node_features_coarse["admin_level"] = admin_level_coarse
     node_features_coarse = node_features_coarse.rename(columns={col_coarse_pcode : "ADM_PCODE", col_coarse_pt : "ADM_PT"})
 
     col_fine_pcode = "ADM" + str(admin_level_fine) + "_PCODE"
     col_fine_pt = "ADM" + str(admin_level_fine) + "_PT"
     node_features_fine = pd.read_csv(features_path_fine)
+    node_features_fine["admin_level"] = admin_level_fine
     node_features_fine = node_features_fine.rename(columns={col_fine_pcode : "ADM_PCODE", col_fine_pt : "ADM_PT"})
 
     node_features = pd.concat([node_features_coarse, node_features_fine])
@@ -76,7 +78,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
         print("Missing districts in the features file: ", missing_districts)
 
     #Retrieve node features in tensor form
-    x_features, y_feature, edges = process_feature_data(node_features, edges)
+    x_features, y_feature, edges, node_features = process_feature_data(node_features, edges)
 
     x = torch.tensor(x_features, dtype=torch.float)
 
@@ -91,7 +93,6 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data.edge_weight = edge_weights
     data.y = torch.tensor(y_feature.values, dtype=torch.float)
     
-
     #Train/val/test split
     node_nums = data.num_nodes
     positions = torch.randperm(node_nums)
@@ -106,6 +107,10 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data.train_mask[positions[:train_size]] = True
     data.val_mask[positions[train_size:train_size + val_size]] = True
     data.test_mask[positions[train_size + val_size:]] = True
+
+    admin_level_vals = node_features["admin_level"].values
+    data.admin_level = torch.tensor(admin_level_vals, dtype=torch.long)
+    data.admin_codes = np.array(node_features.index.values.tolist())
 
     #Densities plot to check outliers
     # densities = (data.y).cpu().numpy()  # Convert to NumPy if using PyTorch
@@ -123,7 +128,6 @@ def process_feature_data(node_features, edges):
 
     node_features.set_index("ADM_PCODE", inplace=True) #Set pcode as index
 
-
     y_feature = node_features["population_density"]
     x_unscaled = node_features.drop(columns=["population_density", "ADM_PT", "log_population", "T_TL"])
 
@@ -131,6 +135,8 @@ def process_feature_data(node_features, edges):
     x_unscaled[['building_count', 'building_area', 'osm_traffic', 'osm_transport', 'osm_places', 'osm_pofw', 'osm_pois', 'osm_railways', 'osm_roads']] = x_unscaled[['building_count', 'building_area', 'osm_traffic', 'osm_transport', 'osm_places', 'osm_pofw', 
                   'osm_pois', 'osm_railways', 'osm_roads']].div(x_unscaled['district_area'], axis=0)
     
+
+
     #Drop another unneeded column
     x_unscaled = x_unscaled.drop(columns=['district_area'])
 
@@ -146,6 +152,8 @@ def process_feature_data(node_features, edges):
     edges["source_num"] = edges["source"].map(area_to_index)
     edges["target_num"] = edges["target"].map(area_to_index)
 
-    return x_features, y_feature, edges
+
+    
+    return x_features, y_feature, edges, node_features
 
 

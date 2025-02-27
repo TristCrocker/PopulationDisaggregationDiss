@@ -49,13 +49,20 @@ if __name__ == "__main__":
     
     hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 32, 6, 0.3,5e-5, 5e-4
 
-    model_inst = model.GraphSage(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    model_inst = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
     loss_fn = nn.SmoothL1Loss() 
     optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
-    loss, val_acc, train_acc = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
+    loss, val_acc, train_acc = train_validate.train_loop(300, model_inst, data, optimizer, loss_fn)
+
+    pred, act = train_validate.produce_predictions(data, model_inst, 3)
+
 
     visualisations.plot_loss_val_curve(loss, val_acc, train_acc, model_inst)
     visualisations.plot_graph_structure(data)
+    visualisations.plot_shape_file("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", 2)
+    visualisations.plot_shape_file("data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", 3)
+    visualisations.plot_shape_file_predictions("data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", pred, act, 3, data)
 
     model_inst.eval()
+

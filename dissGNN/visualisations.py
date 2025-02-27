@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
-# import geopandas as pd
+import geopandas as gpd
 
 
 def plot_loss_val_curve(loss_arr, val_acc_arr, train_acc_arr, model_inst):
@@ -45,4 +45,35 @@ def plot_graph_structure(data):
     plt.show()
 
 
-# def plot_shape_file(shapefile_path):
+def plot_shape_file(shapefile_path, admin_level):
+    gdf = gpd.read_file(shapefile_path)
+
+
+    gdf.plot(figsize=(8, 6), edgecolor="black", alpha=0.5)
+
+    plt.title("Admin " + str(admin_level) + " Layout")
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
+    plt.savefig("output/map_visual/admin_" + str(admin_level) + "/map_visual_population_counts.png", dpi=500)
+    plt.show()
+
+def plot_shape_file_predictions(shapefile_path, pred, act, admin_level, data):
+    gdf = gpd.read_file(shapefile_path)
+    gdf = gdf.rename(columns={"ADM"+str(admin_level)+"_PCODE" : "ADM_PCODE"})
+    mask_admin_level = (data.admin_level == admin_level)
+    admin_codes = data.admin_codes
+    df = pd.DataFrame({"ADM_PCODE" : admin_codes[mask_admin_level.numpy()], "act" : act, "pred" : pred})
+
+    gdf_merged = gdf.merge(df, on="ADM_PCODE", how="left")
+
+    # Step 4: Plot side by side
+    fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+
+    gdf_merged.plot(column="act", cmap="OrRd", legend=True, ax=axes[0])
+    axes[0].set_title("Actual")
+
+    gdf_merged.plot(column="pred", cmap="OrRd", legend=True, ax=axes[1])
+    axes[1].set_title("Predicted")
+
+    plt.savefig("output/map_visual/predictions/map_visual_population_counts.png", dpi=500)
+    plt.show()

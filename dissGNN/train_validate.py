@@ -1,5 +1,6 @@
 import torch
 from sklearn.preprocessing import StandardScaler
+import numpy as np
 
 def train(model, optimizer, data, loss_fn):
     model.train()
@@ -57,4 +58,14 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
     return loss_arr, val_acc_arr, train_acc_arr
 
 
+def produce_predictions(data, model, admin_level):
+    model.eval()
+    mask_admin_level = (data.admin_level == admin_level)
     
+    with torch.no_grad():
+        predictions = model(data.x, data.edge_index, data.edge_weight)
+
+    predictions_final = np.log1p(predictions[mask_admin_level].cpu().numpy().flatten())
+    actual_final = np.log1p(data.y[mask_admin_level].cpu().numpy().flatten())
+
+    return predictions_final, actual_final
