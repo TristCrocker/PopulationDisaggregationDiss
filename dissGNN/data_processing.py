@@ -92,6 +92,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data = Data(x=x, edge_index=edge_index)
     data.edge_weight = edge_weights
     data.y = torch.tensor(y_feature.values, dtype=torch.float)
+
     
     #Train/val/test split
     node_nums = data.num_nodes
@@ -112,10 +113,8 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data.admin_level = torch.tensor(admin_level_vals, dtype=torch.long)
     data.admin_codes = np.array(node_features.index.values.tolist())
 
-    #Densities plot to check outliers
-    # densities = (data.y).cpu().numpy()  # Convert to NumPy if using PyTorch
-    # plt.hist(densities, bins=50)
-    # plt.show()
+    admin_mask = (admin_level_vals == 2)  # Mask for admin level 2 nodes
+    data.y[~torch.tensor(admin_mask)] = -1 #Remove all labels for admin level 3 for semi-supervised learning
 
     return data
 
@@ -135,10 +134,8 @@ def process_feature_data(node_features, edges):
     x_unscaled[['building_count', 'building_area', 'osm_traffic', 'osm_transport', 'osm_places', 'osm_pofw', 'osm_pois', 'osm_railways', 'osm_roads']] = x_unscaled[['building_count', 'building_area', 'osm_traffic', 'osm_transport', 'osm_places', 'osm_pofw', 
                   'osm_pois', 'osm_railways', 'osm_roads']].div(x_unscaled['district_area'], axis=0)
     
-
-
     #Drop another unneeded column
-    x_unscaled = x_unscaled.drop(columns=['district_area'])
+    # x_unscaled = x_unscaled.drop(columns=['district_area'])
 
     #Log population density
     y_feature = np.log1p(y_feature)
