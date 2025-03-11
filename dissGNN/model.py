@@ -40,13 +40,13 @@ class GAT(nn.Module):
         self.conv = nn.ModuleList()
         self.conv.append(GATConv(input_size, hidden_layer_size, add_self_loops=True)) 
         
-        #Hidden layer to hidden layer mapping
+
         #Add number of hidden layers to match the number of neighbours
         for i in range(message_passing_count - 1):
             self.conv.append(GATConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         #Hidden layer to output mapping
-        self.final_layer = GCNConv(hidden_layer_size, output_size, add_self_loops=True)
+        self.final_layer = GATConv(hidden_layer_size, output_size, add_self_loops=True)
         self.drop_prob = drop_prob
 
 
@@ -54,7 +54,6 @@ class GAT(nn.Module):
         for layer in self.conv:
             x = F.dropout(x, p=self.drop_prob, training = self.training)
             x = layer(x, edge_index)          
-            # x = F.leaky_relu(x, negative_slope = 0.01)
             x = F.relu(x)
 
         x = self.final_layer(x, edge_index)

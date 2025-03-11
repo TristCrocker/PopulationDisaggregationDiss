@@ -13,6 +13,8 @@ def train(model, optimizer, data, loss_fn):
     valid_mask = train_labels != -1  # Only keep admin level 2 nodes
 
     loss = loss_fn(torch.expm1(train_preds[valid_mask]), torch.expm1(train_labels[valid_mask]))
+    # loss = loss_fn(train_preds[valid_mask], train_labels[valid_mask])
+
     loss.backward()
     # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.8)
     optimizer.step()
@@ -26,6 +28,9 @@ def validate(model, data, mask, e=1e-6):
     # Compute MAPE
     actual = torch.expm1(data.y[mask])  # Convert log values back to original scale
     predicted = torch.expm1(output[mask])  # Convert log predictions back to original scale
+
+    # actual = data.y[mask]  # Convert log values back to original scale
+    # predicted = output[mask]  # Convert log predictions back to original scale
 
     # Compute MAE
     mae = torch.abs(predicted - actual).mean().item()

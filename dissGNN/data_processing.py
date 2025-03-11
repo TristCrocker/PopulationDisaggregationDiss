@@ -35,7 +35,6 @@ def convert_level_mappings_to_edges(mappings_path):
     edges = mappings[['ADM2_PCODE', 'ADM3_PCODE']]
     edges = edges.rename(columns={'ADM2_PCODE': 'source', 'ADM3_PCODE': 'target'})
     # edges[["source", "target"]] = edges[["target", "source"]] #Used for producing back-edges
-    print("Mappings: ", edges.to_string())
     return edges
 
 
@@ -119,13 +118,24 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     return data
 
 def process_feature_data(node_features, edges):
-    node_features = node_features.dropna()  # Drop NaN values
+    #Drop nan values and ensure admin level 3 mappings also dropped
+    print("LENGTH", len(node_features.isna().sum()))
+    # node_features = node_features.dropna() 
+    
+    admin2_nan = node_features[(node_features['admin_level'] == 2) & (node_features.isna().any(axis=1))]
+    print("LENGTH", len(admin2_nan[admin2_nan == True]))
+    admin2_nan_pcodes = admin2_nan["ADM_PCODE"].tolist()
+    admin3_remove = node_features[(node_features["admin_level"] == 3) & (node_features["ADM_PCODE"].str.startswith(tuple(admin2_nan_pcodes)))]
+    rows_rem = admin2_nan.index.union(admin3_remove.index)
+    node_features = node_features.drop(index=rows_rem)
+
+    # print(node_features)
+    edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])] #Remove edges no longer valid
+    node_features.set_index("ADM_PCODE", inplace=True) #Set pcode as index
 
     node_features["population_density"] = node_features["T_TL"] / node_features["district_area"] #Produce population density
     node_features = node_features[node_features["population_density"] > 0]  # Remove zero-population areas
-    edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])] #Remove edges no longer valid
 
-    node_features.set_index("ADM_PCODE", inplace=True) #Set pcode as index
 
     y_feature = node_features["population_density"]
     x_unscaled = node_features.drop(columns=["population_density", "ADM_PT", "log_population", "T_TL"])
@@ -148,7 +158,6 @@ def process_feature_data(node_features, edges):
     area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
     edges["source_num"] = edges["source"].map(area_to_index)
     edges["target_num"] = edges["target"].map(area_to_index)
-
 
     
     return x_features, y_feature, edges, node_features

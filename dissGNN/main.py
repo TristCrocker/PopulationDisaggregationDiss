@@ -51,7 +51,7 @@ if __name__ == "__main__":
     
     hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 8, 0.0, 5e-4, 1e-5
 
-    model_inst = model.GAT(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    model_inst = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
     # loss_fn = nn.MSELoss() 
     loss_fn = nn.L1Loss() 
@@ -68,9 +68,6 @@ if __name__ == "__main__":
     visualisations.plot_shape_file("data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", 3)
     visualisations.plot_shape_file_predictions("data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", pred, act, 3, data)
     visualisations.plot_residuals(pred, act, model_inst)
-
-    
-
 
     model_inst.eval()
 
