@@ -50,7 +50,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
 
     #Add weights for edges
-    weights = {"coarse" : 1, "fine" : 0.5, "mappings" : 2}
+    weights = {"coarse" : 2, "fine" : 0.5, "mappings" : 1}
     edges["weights_init"] = edges["type"].map(weights)
     #Normalize weights TODO
 
@@ -100,6 +100,10 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     train_size = int(0.7 * node_nums)
     val_size = int(0.2 * node_nums)
 
+    # data.train_mask = (data.admin_level == 2) & (torch.rand(data.num_nodes) < 0.7)
+    # data.val_mask = (data.admin_level == 2) & ~ data.train_mask
+    # data.test_mask = (data.admin_level == 3)  # Test on admin level 3 if needed
+
     data.train_mask = torch.zeros(node_nums, dtype=torch.bool)
     data.val_mask = torch.zeros(node_nums, dtype=torch.bool)
     data.test_mask = torch.zeros(node_nums, dtype=torch.bool)
@@ -119,15 +123,15 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
 
 def process_feature_data(node_features, edges):
     #Drop nan values and ensure admin level 3 mappings also dropped
-    print("LENGTH", len(node_features.isna().sum()))
-    # node_features = node_features.dropna() 
+    # print("LENGTH", len(node_features.isna().sum()))
+    node_features = node_features.dropna() 
     
-    admin2_nan = node_features[(node_features['admin_level'] == 2) & (node_features.isna().any(axis=1))]
-    print("LENGTH", len(admin2_nan[admin2_nan == True]))
-    admin2_nan_pcodes = admin2_nan["ADM_PCODE"].tolist()
-    admin3_remove = node_features[(node_features["admin_level"] == 3) & (node_features["ADM_PCODE"].str.startswith(tuple(admin2_nan_pcodes)))]
-    rows_rem = admin2_nan.index.union(admin3_remove.index)
-    node_features = node_features.drop(index=rows_rem)
+    # admin2_nan = node_features[(node_features['admin_level'] == 2) & (node_features.isna().any(axis=1))]
+    # print("LENGTH", len(admin2_nan[admin2_nan == True]))
+    # admin2_nan_pcodes = admin2_nan["ADM_PCODE"].tolist()
+    # admin3_remove = node_features[(node_features["admin_level"] == 3) & (node_features["ADM_PCODE"].str.startswith(tuple(admin2_nan_pcodes)))]
+    # rows_rem = admin2_nan.index.union(admin3_remove.index)
+    # node_features = node_features.drop(index=rows_rem)
 
     # print(node_features)
     edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])] #Remove edges no longer valid
