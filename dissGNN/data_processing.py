@@ -92,32 +92,33 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data.edge_weight = edge_weights
     data.y = torch.tensor(y_feature.values, dtype=torch.float)
 
+    admin_level_vals = node_features["admin_level"].values
+    data.admin_level = torch.tensor(admin_level_vals, dtype=torch.long)
+    data.admin_codes = np.array(node_features.index.values.tolist())
     
     #Train/val/test split
     node_nums = data.num_nodes
     positions = torch.randperm(node_nums)
 
-    train_size = int(0.7 * node_nums)
-    val_size = int(0.2 * node_nums)
+    
 
-    # data.train_mask = (data.admin_level == 2) & (torch.rand(data.num_nodes) < 0.7)
-    # data.val_mask = (data.admin_level == 2) & ~ data.train_mask
-    # data.test_mask = (data.admin_level == 3)  # Test on admin level 3 if needed
+    data.train_mask = (data.admin_level == 2) & (torch.rand(data.num_nodes) < 0.7)
+    data.val_mask = (data.admin_level == 2) & ~ data.train_mask
+    data.test_mask = (data.admin_level == 3)  # Test on admin level 3 if needed
 
-    data.train_mask = torch.zeros(node_nums, dtype=torch.bool)
-    data.val_mask = torch.zeros(node_nums, dtype=torch.bool)
-    data.test_mask = torch.zeros(node_nums, dtype=torch.bool)
+    # train_size = int(0.7 * node_nums)
+    # val_size = int(0.2 * node_nums)
 
-    data.train_mask[positions[:train_size]] = True
-    data.val_mask[positions[train_size:train_size + val_size]] = True
-    data.test_mask[positions[train_size + val_size:]] = True
+    # data.train_mask = torch.zeros(node_nums, dtype=torch.bool)
+    # data.val_mask = torch.zeros(node_nums, dtype=torch.bool)
+    # data.test_mask = torch.zeros(node_nums, dtype=torch.bool)
 
-    admin_level_vals = node_features["admin_level"].values
-    data.admin_level = torch.tensor(admin_level_vals, dtype=torch.long)
-    data.admin_codes = np.array(node_features.index.values.tolist())
+    # data.train_mask[positions[:train_size]] = True
+    # data.val_mask[positions[train_size:train_size + val_size]] = True
+    # data.test_mask[positions[train_size + val_size:]] = True
 
     admin_mask = (admin_level_vals == 2)  # Mask for admin level 2 nodes
-    data.y[~torch.tensor(admin_mask)] = -1 #Remove all labels for admin level 3 for semi-supervised learning
+    # data.y[~torch.tensor(admin_mask)] = -1 #Remove all labels for admin level 3 for semi-supervised learning
 
     return data
 

@@ -50,10 +50,10 @@ class GAT(nn.Module):
         self.drop_prob = drop_prob
 
 
-    def forward(self, x, edge_index, edge_weight):
+    def forward(self, x, edge_index):
         for layer in self.conv:
             x = F.dropout(x, p=self.drop_prob, training = self.training)
-            x = layer(x, edge_index, edge_attr=edge_weight)          
+            x = layer(x, edge_index)          
             # x = F.leaky_relu(x, negative_slope = 0.01)
             x = F.relu6(x)
 
