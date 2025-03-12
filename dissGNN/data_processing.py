@@ -101,7 +101,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     positions = torch.randperm(node_nums)
 
     
-    data.train_mask = (data.admin_level == 2) & (torch.rand(data.num_nodes) < 0.7)
+    data.train_mask = (data.admin_level == 2) & (torch.rand(data.num_nodes) < 0.9)
     data.val_mask = (data.admin_level == 2) & ~ data.train_mask
     data.test_mask = (data.admin_level == 3)  # Test on admin level 3 if needed
 
