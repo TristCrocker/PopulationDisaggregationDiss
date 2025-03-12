@@ -56,7 +56,7 @@ if __name__ == "__main__":
     # loss_fn = nn.MSELoss() 
     loss_fn = nn.SmoothL1Loss() 
     optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
-    loss, val_acc, train_acc = train_validate.train_loop(200, model_inst, data, optimizer, loss_fn)
+    loss, val_acc, train_acc = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
 
     pred, act = train_validate.produce_predictions(data, model_inst, 3)
     visualisations.plot_graph_on_shapefile("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", data, 2, 3)
