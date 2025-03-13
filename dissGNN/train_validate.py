@@ -13,10 +13,11 @@ def train(model, optimizer, data, loss_fn):
     # valid_mask = train_labels != -1  # Only keep admin level 2 nodes
 
     # loss = loss_fn(torch.expm1(train_preds[valid_mask]), torch.expm1(train_labels[valid_mask]))
-    loss = loss_fn(torch.expm1(train_preds), torch.expm1(train_labels))
+    # loss = loss_fn(torch.expm1(train_preds), torch.expm1(train_labels))
+    loss = loss_fn(train_preds, train_labels)
 
     loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 0.8)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.4)
     optimizer.step()
     return loss.item()
 
@@ -26,11 +27,11 @@ def validate(model, data, mask, e=1e-6):
     output = model(data.x, data.edge_index, data.edge_weight).squeeze()
 
     # Compute MAPE
-    actual = torch.expm1(data.y[mask])  # Convert log values back to original scale
-    predicted = torch.expm1(output[mask])  # Convert log predictions back to original scale
+    # actual = torch.expm1(data.y[mask])  # Convert log values back to original scale
+    # predicted = torch.expm1(output[mask])  # Convert log predictions back to original scale
 
-    # actual = data.y[mask]  # Convert log values back to original scale
-    # predicted = output[mask]  # Convert log predictions back to original scale
+    actual = data.y[mask]  # Convert log values back to original scale
+    predicted = output[mask]  # Convert log predictions back to original scale
 
     # Compute MAE
     mae = torch.abs(predicted - actual).mean().item()
@@ -68,12 +69,17 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
 
 def produce_predictions(data, model, admin_level):
     model.eval()
-    mask_admin_level = (data.admin_level == admin_level)
     
     with torch.no_grad():
         predictions = model(data.x, data.edge_index, data.edge_weight)
 
-    predictions_final = torch.expm1(predictions[mask_admin_level]).cpu().numpy().flatten()
-    actual_final = torch.expm1(data.y[mask_admin_level]).cpu().numpy().flatten()
+    print("Raw Predictions (before expm1):", predictions[data.test_mask].detach().cpu().numpy())
+    print("Actual Values (before expm1):", data.y[data.test_mask].detach().cpu().numpy())
+
+    predictions_final = torch.expm1(predictions[data.test_mask]).cpu().numpy().flatten()
+    actual_final = torch.expm1(data.y[data.test_mask]).cpu().numpy().flatten()
+
+    predictions_final = predictions[data.test_mask].cpu().numpy().flatten()
+    actual_final = data.y[data.test_mask].cpu().numpy().flatten()
 
     return predictions_final, actual_final  

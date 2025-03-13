@@ -18,17 +18,17 @@ class GraphSage(nn.Module):
             self.conv.append(SAGEConv(hidden_layer_size, hidden_layer_size))
 
         #Hidden layer to output mapping
-        self.final_layer = nn.Linear(hidden_layer_size, output_size)
+        self.final_layer = SAGEConv(hidden_layer_size, output_size)
         self.drop_prob = drop_prob
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
             x = F.dropout(x, p=self.drop_prob, training = self.training)
             x = layer(x, edge_index)          
             # x = F.leaky_relu(x, negative_slope = 0.01)
             x = F.relu(x)
 
-        x = self.final_layer(x)
+        x = self.final_layer(x, edge_index)
 
         return x
     
@@ -74,10 +74,10 @@ class GCN(nn.Module):
             self.conv.append(GCNConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         #Hidden layer to output mapping
-        self.final_layer = nn.Linear(hidden_layer_size, output_size)
+        self.final_layer = GCNConv(hidden_layer_size, output_size)
         self.drop_prob = drop_prob
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
             
             x = layer(x, edge_index)      
@@ -85,6 +85,6 @@ class GCN(nn.Module):
             # x = F.leaky_relu(x, negative_slope = 0.01)
             x = F.relu(x)
 
-        x = self.final_layer(x)
+        x = self.final_layer(x, edge_index)
 
         return x

@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from torch_geometric.data import Data
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 
 # Function to convert a shapefile to represent edges of graph for specific country
@@ -50,7 +50,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
 
     #Add weights for edges
-    weights = {"coarse" : 4, "fine" : 1, "mappings" : 10}
+    weights = {"coarse" : 2, "fine" : 0.5, "mappings" : 2}
     edges["weights_init"] = edges["type"].map(weights)
     #Normalize weights TODO
 
@@ -116,30 +116,45 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     # data.val_mask[positions[train_size:train_size + val_size]] = True
     # data.test_mask[positions[train_size + val_size:]] = True
 
-    admin_mask = (admin_level_vals == 2)  # Mask for admin level 2 nodes
+    # admin_mask = (admin_level_vals == 2)  # Mask for admin level 2 nodes
     # data.y[~torch.tensor(admin_mask)] = -1 #Remove all labels for admin level 3 for semi-supervised learning
-
     return data
 
 def process_feature_data(node_features, edges):
     #Drop nan values and ensure admin level 3 mappings also dropped
     # print("LENGTH", len(node_features.isna().sum()))
-    node_features = node_features.dropna() 
     
-    # admin2_nan = node_features[(node_features['admin_level'] == 2) & (node_features.isna().any(axis=1))]
-    # print("LENGTH", len(admin2_nan[admin2_nan == True]))
-    # admin2_nan_pcodes = admin2_nan["ADM_PCODE"].tolist()
-    # admin3_remove = node_features[(node_features["admin_level"] == 3) & (node_features["ADM_PCODE"].str.startswith(tuple(admin2_nan_pcodes)))]
-    # rows_rem = admin2_nan.index.union(admin3_remove.index)
-    # node_features = node_features.drop(index=rows_rem)
 
-    # print(node_features)
-    edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])] #Remove edges no longer valid
-    node_features.set_index("ADM_PCODE", inplace=True) #Set pcode as index
+   # Convert ADM_PCODE to string for consistency
+     
+    node_features = node_features.copy()
+    # node_features = node_features.dropna() 
+    node_features["ADM_PCODE"] = node_features["ADM_PCODE"].astype(str)
+
+    nodes_with_nans = node_features[node_features.isna().any(axis=1)]
+    removed_pcodes = set(nodes_with_nans["ADM_PCODE"])  
+
+    admin2_nan_pcodes = set(node_features[(node_features["admin_level"] == 2) & (node_features["ADM_PCODE"].isin(removed_pcodes))]["ADM_PCODE"])
+
+    # Efficiently find admin level 3 nodes that belong to these removed admin 2 nodes
+    admin3_remove = node_features[
+        (node_features["admin_level"] == 3) &
+        (node_features["ADM_PCODE"].str.startswith(tuple(admin2_nan_pcodes)))
+    ]
+
+    # Add these admin 3 nodes to the removal list
+    removed_pcodes.update(admin3_remove["ADM_PCODE"])
+    
+    node_features = node_features[~node_features["ADM_PCODE"].isin(removed_pcodes)]
+    edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])]
+    edges = edges.copy()
+    edges["source"] = edges["source"].astype(str)
+    edges["target"] = edges["target"].astype(str)
+
+    node_features.set_index("ADM_PCODE", inplace=True)  # Set pcode as index
 
     node_features["population_density"] = node_features["T_TL"] / node_features["district_area"] #Produce population density
     node_features = node_features[node_features["population_density"] > 0]  # Remove zero-population areas
-
 
     y_feature = node_features["population_density"]
     x_unscaled = node_features.drop(columns=["population_density", "ADM_PT", "log_population", "T_TL"])
@@ -150,16 +165,19 @@ def process_feature_data(node_features, edges):
     
     #Drop another unneeded column
     # x_unscaled = x_unscaled.drop(columns=['district_area'])
-
+    x_unscaled = x_unscaled.drop(columns=['admin_level'])
     #Log population density
-    y_feature = np.log1p(y_feature)
+    # y_feature = np.log1p(y_feature)
 
     # Standardize x (features)
     scaler = StandardScaler()
     x_features = scaler.fit_transform(x_unscaled)
 
+
     #Convert districts in edges to numbers
     area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
+    edges = edges[edges["source"].isin(area_to_index) & edges["target"].isin(area_to_index)].copy()
+
     edges["source_num"] = edges["source"].map(area_to_index)
     edges["target_num"] = edges["target"].map(area_to_index)
 
