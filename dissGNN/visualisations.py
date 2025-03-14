@@ -188,4 +188,38 @@ def plot_admin_dists(data):
     plt.ylabel("Count")
     plt.title("Admin Level 3 Population Density Distribution")
     plt.savefig("output/admin_dists.png", dpi=500)
+    # plt.show()    
+
+
+def plot_shape_file_covariates(shapefile_path_coarse, shapefile_path_fine, df_data, covariate_col):
+    gdf_coarse = gpd.read_file(shapefile_path_coarse)
+    gdf_coarse = gdf_coarse.rename(columns={"ADM"+str(2)+"_PCODE" : "ADM_PCODE"})
+
+    gdf_fine = gpd.read_file(shapefile_path_fine)
+    gdf_fine = gdf_fine.rename(columns={"ADM"+str(3)+"_PCODE" : "ADM_PCODE"})
+
+    mask_admin_level_coarse = (df_data["admin_level"] == 2)
+    mask_admin_level_fine = (df_data["admin_level"] == 3)
+    df_coarse = pd.DataFrame({
+        "ADM_PCODE": df_data["ADM_PCODE"][mask_admin_level_coarse].to_numpy(),
+        "covariate_value": df_data[covariate_col][mask_admin_level_coarse].to_numpy()})
+    
+    df_fine = pd.DataFrame({
+        "ADM_PCODE": df_data["ADM_PCODE"][mask_admin_level_fine].to_numpy(),
+        "covariate_value": df_data[covariate_col][mask_admin_level_fine].to_numpy()})
+
+    gdf_merged_coarse = gdf_coarse.merge(df_coarse, on="ADM_PCODE", how="left")
+    gdf_merged_fine = gdf_fine.merge(df_fine, on="ADM_PCODE", how="left")
+
+    fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+
+    gdf_merged_coarse.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[0], edgecolor="black")
+    axes[0].set_title("Admin Level 2 - " + covariate_col)
+
+    gdf_merged_fine.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[1], edgecolor="black")
+    axes[1].set_title("Admin Level 3 - " + covariate_col)
+
+    covariate_col = covariate_col.replace("/", "")
+
+    plt.savefig("output/map_visual/covariates/map_visual_covariate_" + covariate_col + ".png", dpi=500)
     # plt.show()

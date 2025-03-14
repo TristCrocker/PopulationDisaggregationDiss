@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # print(best_mape, "\n", best_params)
     # --------------
     
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 6, 0.3, 5e-3, 5e-4
+    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 4, 0.3, 5e-3, 5e-4
 
     model_inst = model.GAT(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
@@ -68,6 +68,7 @@ if __name__ == "__main__":
     visualisations.plot_shape_file("data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", 3)
     visualisations.plot_shape_file_predictions("data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", pred, act, 3, data)
     visualisations.plot_residuals(pred, act, model_inst)
+
 
     model_inst.eval()
 

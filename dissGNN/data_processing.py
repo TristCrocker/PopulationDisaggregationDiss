@@ -6,6 +6,7 @@ import numpy as np
 from torch_geometric.data import Data
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import visualisations
 
 
 # Function to convert a shapefile to represent edges of graph for specific country
@@ -165,14 +166,32 @@ def process_feature_data(node_features, edges):
     
     #Drop another unneeded column
     # x_unscaled = x_unscaled.drop(columns=['district_area'])
+    ad_levels = x_unscaled["admin_level"].copy()
     x_unscaled = x_unscaled.drop(columns=['admin_level'])
+    
+    # --------- Visualisation covariates
     #Log population density
     # y_feature = np.log1p(y_feature)
-
+    original_index = x_unscaled.index  
     # Standardize x (features)
+    scaler_vis = MinMaxScaler()
+    x_scaled = scaler_vis.fit_transform(x_unscaled)
+    # x_scaled = x_unscaled.values
+    # Create DataFrame with original index preserved
+    x_features_cols_vis = pd.DataFrame(x_scaled, columns=x_unscaled.columns, index=original_index)
+    # Add ADM_PCODE and admin_level, ensuring alignment
+    x_features_cols_vis['ADM_PCODE'] = original_index  
+    x_features_cols_vis["admin_level"] = ad_levels.reindex(original_index)  # Explicitly align admin_level
+    # x_features_cols_vis.to_csv("output/csv_files/covariates_normal.csv")
+
+    #Visualise covariates
+    for col in x_features_cols_vis.columns:
+        visualisations.plot_shape_file_covariates("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", x_features_cols_vis, str(col))
+
+    # ---------
+
     scaler = StandardScaler()
     x_features = scaler.fit_transform(x_unscaled)
-
 
     #Convert districts in edges to numbers
     area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
