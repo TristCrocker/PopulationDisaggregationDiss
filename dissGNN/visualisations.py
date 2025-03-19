@@ -27,23 +27,43 @@ def plot_loss_val_curve(loss_arr, val_acc_arr, train_acc_arr, model_inst):
     plt.savefig("output/" + type(model_inst).__name__ + "/train_loss_curve.png", dpi=300)
 
 
+
 def plot_graph_structure(data):
-
-
+    # Convert PyTorch Geometric edge index to Pandas DataFrame
     edges = data.edge_index.cpu().numpy().T
     edges_df = pd.DataFrame(edges, columns=["source", "target"])
 
+    # Create a NetworkX Graph
     G = nx.from_pandas_edgelist(edges_df, source="source", target="target", create_using=nx.Graph())
 
-    pos = nx.spring_layout(G, seed=42)  
+    # Compute the number of connected components (subgraphs)
+    num_subgraphs = nx.number_connected_components(G)
+    print(f"Number of connected components (subgraphs): {num_subgraphs}")
+
+    # Assign each node a color based on its connected component
+    components = list(nx.connected_components(G))  # List of node sets
+    component_colors = {node: idx for idx, component in enumerate(components) for node in component}
+
+    # Define node colors
+    node_colors = [component_colors[node] for node in G.nodes()]
+
+    # Position the nodes using a force-directed layout
+    pos = nx.spring_layout(G, seed=42)
+
+    # Plot the graph
     plt.figure(figsize=(8, 6))
-    nx.draw_networkx_nodes(G, pos, node_size=50, node_color='blue')
+    nx.draw_networkx_nodes(G, pos, node_size=50, node_color=node_colors, cmap=plt.cm.Set1)
     nx.draw_networkx_edges(G, pos, edge_color='gray')
-    # nx.draw_networkx_labels(G, pos, font_size=8)
-    plt.title("Topological View of the Graph")
+
+    # Plot settings
+    plt.title(f"Graph Structure (Subgraphs: {num_subgraphs})")
     plt.axis("off")
+
+    # Save & show graph
     plt.savefig("output/graph_structure/graph_structure.png", dpi=500)
     # plt.show()
+
+    return num_subgraphs  # Return the number of subgraphs
 
 
 def plot_shape_file(shapefile_path, admin_level):
@@ -213,11 +233,22 @@ def plot_shape_file_covariates(shapefile_path_coarse, shapefile_path_fine, df_da
 
     fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
 
-    gdf_merged_coarse.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[0], edgecolor="black")
-    axes[0].set_title("Admin Level 2 - " + covariate_col)
+    if pd.api.types.is_numeric_dtype(gdf_merged_coarse["covariate_value"]):
+        vmin = min(gdf_merged_coarse["covariate_value"].min(), gdf_merged_fine["covariate_value"].min())
+        vmax = max(gdf_merged_coarse["covariate_value"].max(), gdf_merged_fine["covariate_value"].max())
 
-    gdf_merged_fine.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[1], edgecolor="black")
-    axes[1].set_title("Admin Level 3 - " + covariate_col)
+        gdf_merged_coarse.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[0], edgecolor="black", vmin = vmin, vmax = vmax)
+        axes[0].set_title("Admin Level 2 - " + covariate_col)
+
+        gdf_merged_fine.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[1], edgecolor="black", vmin = vmin, vmax = vmax)
+        axes[1].set_title("Admin Level 3 - " + covariate_col)
+
+    else:
+        gdf_merged_coarse.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[0], edgecolor="black")
+        axes[0].set_title("Admin Level 2 - " + covariate_col)
+
+        gdf_merged_fine.plot(column="covariate_value", cmap="OrRd", legend=True, ax=axes[1], edgecolor="black")
+        axes[1].set_title("Admin Level 3 - " + covariate_col)
 
     covariate_col = covariate_col.replace("/", "")
 

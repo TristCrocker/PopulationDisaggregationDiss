@@ -7,6 +7,8 @@ from torch_geometric.data import Data
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 import visualisations
+from torch_geometric.utils import get_laplacian
+import torch_geometric.utils as pyg_utils
 
 
 # Function to convert a shapefile to represent edges of graph for specific country
@@ -33,6 +35,11 @@ def convert_shapefile_to_graph(shape_path, admin_level):
 def convert_level_mappings_to_edges(mappings_path):
     
     mappings = pd.read_csv(mappings_path)
+    
+    # Print duplicate admin level 3
+    # duplicate_values = mappings[mappings.duplicated(subset=["ADM3_PCODE"], keep=False)]
+    # print(duplicate_values[["ADM3_PCODE", "ADM2_PCODE"]].sort_values(by="ADM3_PCODE"))   
+
     edges = mappings[['ADM2_PCODE', 'ADM3_PCODE']]
     edges = edges.rename(columns={'ADM2_PCODE': 'source', 'ADM3_PCODE': 'target'})
     # edges[["source", "target"]] = edges[["target", "source"]] #Used for producing back-edges
@@ -49,9 +56,9 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges_mappings = convert_level_mappings_to_edges(mappings_path)
     edges_mappings["type"] = "mappings"
     edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
-
+    
     #Add weights for edges
-    weights = {"coarse" : 2, "fine" : 0.5, "mappings" : 2}
+    weights = {"coarse" : 1, "fine" : 1, "mappings" : 1}
     edges["weights_init"] = edges["type"].map(weights)
     #Normalize weights TODO
 
@@ -88,6 +95,18 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     #Edge weights
     edge_weights = torch.tensor(edges["weights_init"].values, dtype=torch.float)
 
+    lap_edge_index, lap_edge_weight = get_laplacian(edge_index, edge_weights, normalization=None)
+    mask = lap_edge_index[0] != lap_edge_index[1]
+    lap_edge_index = lap_edge_index[:, mask]
+    lap_edge_weight = lap_edge_weight[mask]
+    lap_edge_weight = torch.abs(lap_edge_weight) #Remove negatives
+    edges["lap_weight"] = lap_edge_weight.numpy()
+    edges["weights_init"] = edges["weights_init"] * edges["lap_weight"] #Find new weights
+    edges["weights_init"] = edges["weights_init"] / edges["weights_init"].max() #Normalize weights
+
+    edge_index = torch.tensor(edges[["source_num", "target_num"]].values.T, dtype=torch.long)
+    edge_weights = torch.tensor(edges["weights_init"].values, dtype=torch.float)
+    
     #Produce graph data
     data = Data(x=x, edge_index=edge_index)
     data.edge_weight = edge_weights
@@ -105,6 +124,14 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     data.train_mask = (data.admin_level == 2) & (torch.rand(data.num_nodes) < 0.9)
     data.val_mask = (data.admin_level == 2) & ~ data.train_mask
     data.test_mask = (data.admin_level == 3)  # Test on admin level 3 if needed
+
+    #Check number of disconnected nodes
+    # connected_nodes = torch.unique(data.edge_index)
+    # num_nodes = data.num_nodes
+    # disconnected_nodes = torch.tensor([i for i in range(num_nodes) if i not in connected_nodes])
+    # print(f"Total nodes: {num_nodes}")
+    # print(f"Connected nodes: {connected_nodes.shape[0]}")
+    # print(f"Disconnected nodes: {disconnected_nodes.shape[0]}")
 
     # train_size = int(0.7 * node_nums)
     # val_size = int(0.2 * node_nums)
@@ -185,10 +212,12 @@ def process_feature_data(node_features, edges):
     # x_features_cols_vis.to_csv("output/csv_files/covariates_normal.csv")
 
     #Visualise covariates
-    for col in x_features_cols_vis.columns:
-        visualisations.plot_shape_file_covariates("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", x_features_cols_vis, str(col))
+    # for col in x_features_cols_vis.columns:
+    #     visualisations.plot_shape_file_covariates("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", x_features_cols_vis, str(col))
 
     # ---------
+
+    
 
     scaler = StandardScaler()
     x_features = scaler.fit_transform(x_unscaled)

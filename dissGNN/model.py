@@ -46,7 +46,7 @@ class GAT(nn.Module):
             self.conv.append(GATConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         #Hidden layer to output mapping
-        self.linear = GATConv(hidden_layer_size, output_size)
+        self.final_layer = GATConv(hidden_layer_size, output_size)
         self.drop_prob = drop_prob
 
     def forward(self, x, edge_index, edge_weight):
@@ -56,7 +56,7 @@ class GAT(nn.Module):
             # x = F.leaky_relu(x, negative_slope = 0.1)
             x = F.relu(x)
 
-        x = self.linear(x, edge_index)
+        x = self.final_layer(x, edge_index)
 
         return x
     
@@ -79,10 +79,9 @@ class GCN(nn.Module):
 
     def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
-            
+            x = F.dropout(x, p=self.drop_prob, training = self.training)
             x = layer(x, edge_index)      
-            x = F.dropout(x, p=self.drop_prob, training = self.training)    
-            # x = F.leaky_relu(x, negative_slope = 0.01)
+            
             x = F.relu(x)
 
         x = self.final_layer(x, edge_index)
