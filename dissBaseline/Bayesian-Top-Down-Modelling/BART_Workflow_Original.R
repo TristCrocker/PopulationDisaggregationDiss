@@ -211,10 +211,8 @@ head(covs_train[,1:2]) # only showing first two columns
 
 
 #fit model to train dataset
-
 model2 <- bartMachine(X = covs_train, y = train$pop_density,
                       k = 5, nu = 10, q = 0.75, num_trees = 200, use_missing_data = T)
-
 
 model2
 
@@ -224,10 +222,8 @@ model2_CI <- model2_CI %>%
   as_tibble() %>% 
   mutate(ci_lower_bd = exp(ci_lower_bd), ci_upper_bd = exp(ci_upper_bd))
 
-
 #predicted values
 model2_predictions <- model2$y_hat_train %>% as_tibble()
-
 
 #cbind predicted posteriors to original data
 model2_predictions <- model2_predictions %>% 

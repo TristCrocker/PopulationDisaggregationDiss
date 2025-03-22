@@ -96,6 +96,12 @@ cov_stats <- data.frame(
   Std_Dev = apply(covs_admin2, 2, sd, na.rm = TRUE)
 )
 
+admin2_means <- cov_stats$Mean
+names(admin2_means) <- cov_stats$Covariate
+
+admin2_sds <- cov_stats$Std_Dev
+names(admin2_sds) <- cov_stats$Covariate
+
 # Scaling function to standardize covariates
 stdize <- function(x) {
   (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
@@ -177,6 +183,7 @@ model2 <- bartMachine(
   y = train$pop_density,
   k = 1, nu = 3, q = 0.25, num_trees = 500, use_missing_data = TRUE
 )
+
 
 # model2 <- bartMachineCV(
 #   X = covs_admin2,
@@ -283,7 +290,6 @@ print(admin2_metrics_test)
 # Save metrics to a CSV file
 write.csv(admin2_metrics_test, paste0(output_path, "BART/model_metrics.csv"), row.names = FALSE)
 
-
 # Plot Observed vs. Predicted
 library(ggplot2)
 ggplot(admin2_predictions) +
@@ -327,7 +333,6 @@ ggplot(var_importance_df, aes(x = reorder(variable, inc_prop), y = inc_prop, fil
 
 ggsave("variable_importance.jpg", plot = last_plot(), path = "output/BART/")
 
-
 # Save Variable Importance
 data.table::fwrite(var_importance_df, paste0(output_path, "BART/BART_var_importance.csv"))
 
@@ -364,23 +369,30 @@ covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_ar
                                      -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
-covs_admin3 <- covs_admin3 %>%
-  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw, DNB)
+# covs_admin3 <- covs_admin3 %>%
+#   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_railways, osm_pofw, DNB)
 
-
+covs_admin3 <- admin3_covs %>%
+  select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, 
+         osm_traffic, osm_transport, osm_railways, osm_pofw, DNB) %>%
+  mutate(across(
+    everything(),
+    ~ (. - admin2_means[cur_column()]) / admin2_sds[cur_column()]
+  ))
 
 # Calculate mean and standard deviation of covariates for scaling
-cov3_stats <- data.frame(
-  Covariate = colnames(covs_admin3),
-  Mean = apply(covs_admin3, 2, mean, na.rm = TRUE),
-  Std_Dev = apply(covs_admin3, 2, sd, na.rm = TRUE)
-)
+# cov3_stats <- data.frame(
+#   Covariate = colnames(covs_admin3),
+#   Mean = apply(covs_admin3, 2, mean, na.rm = TRUE),
+#   Std_Dev = apply(covs_admin3, 2, sd, na.rm = TRUE)
+# )
 
 # Apply scaling function
-covs_admin3 <- apply(covs_admin3, 2, stdize) %>% as_tibble()
+# covs_admin3 <- apply(covs_admin3, 2, stdize) %>% as_tibble()
 
 # Predict population density for Admin Level 3
 admin3_predictions <- predict(model2, new_data = covs_admin3)
+
 
 
 # Redistribute population to Admin Level 3

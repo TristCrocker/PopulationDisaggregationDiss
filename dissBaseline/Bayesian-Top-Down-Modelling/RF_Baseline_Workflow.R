@@ -43,6 +43,7 @@ covs_admin2 <- admin2_data %>%
   select(-ADM2_PT, -ADM2_PCODE, -T_TL, -district_area, -pop_density, -log_population)
 
 
+
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
 # covs_admin2 <- covs_admin2 %>%
 #   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pois, osm_traffic, osm_transport, osm_pofw)
@@ -53,6 +54,12 @@ cov_stats <- data.frame(
   Mean = apply(covs_admin2, 2, mean, na.rm = TRUE),
   Std_Dev = apply(covs_admin2, 2, sd, na.rm = TRUE)
 )
+
+admin2_means <- cov_stats$Mean
+names(admin2_means) <- cov_stats$Covariate
+
+admin2_sds <- cov_stats$Std_Dev
+names(admin2_sds) <- cov_stats$Covariate
 
 
 # Scaling function to standardize covariates
@@ -279,6 +286,17 @@ admin3_covs <- admin3_covs %>%
   left_join(admin_mapping, by = c("ADM3_PT", "ADM3_PCODE"))
 
 
+#Ensure OSM covariates are in density units
+admin3_covs <- admin3_covs %>%
+  mutate(across(starts_with("osm"), ~ . / district_area))
+
+#Ensure building_count covariates are in density units
+admin3_covs <- admin3_covs %>%
+  mutate(building_count = building_count / district_area)
+
+admin3_covs <- admin3_covs %>%
+  mutate(building_area = building_area / district_area)
+
 # Remove metadata
 covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_area, -log_population,
                                      -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
@@ -288,13 +306,22 @@ covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_ar
 #   select(Trees, Built.Area, building_area, building_count, osm_roads, osm_pofw, DNB, Water, SR_B6, SR_B1)
 
 #Standardize covs
-for (var in names(covs_admin3)) {
-  if (var %in% cov_stats$Covariate) {
-    var_mean <- cov_stats$Mean[cov_stats$Covariate == var]
-    var_sd <- cov_stats$Std_Dev[cov_stats$Covariate == var]
-    covs_admin3[[var]] <- (covs_admin3[[var]] - var_mean) / var_sd
-  }
-}
+# for (var in names(covs_admin3)) {
+#   if (var %in% cov_stats$Covariate) {
+#     var_mean <- cov_stats$Mean[cov_stats$Covariate == var]
+#     var_sd <- cov_stats$Std_Dev[cov_stats$Covariate == var]
+#     covs_admin3[[var]] <- (covs_admin3[[var]] - var_mean) / var_sd
+#   }
+# }
+
+
+
+covs_admin3 <- covs_admin3 %>%
+  mutate(across(
+    everything(),
+    ~ (. - admin2_means[cur_column()]) / admin2_sds[cur_column()]
+  ))
+
 
 # Predict population density for Admin Level 3
 admin3_predictions <- predict(model2, newdata = covs_admin3)
