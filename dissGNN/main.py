@@ -49,12 +49,17 @@ if __name__ == "__main__":
     # print(best_mape, "\n", best_params)
     # --------------
     
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 8, 0.3, 5e-3, 5e-4
+    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 4, 0.01, 1e-2, 1e-2
+    # hidden_size = 64
+    # message_passing_count = 3
+    # drop_prob = 0.1
+    # learning_rate = 1e-4
+    # weight_decay = 1e-4
+    model_inst = model.GraphSage(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    # model_inst = model.LinRegModel(input_size, output_size)
 
-    model_inst = model.GAT(input_size, output_size, hidden_size, message_passing_count, drop_prob)
-
-    # loss_fn = nn.MSELoss() 
     loss_fn = nn.SmoothL1Loss() 
+    # loss_fn = nn.CrossEntropyLoss() 
     optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
     loss, val_acc, train_acc = train_validate.train_loop(500, model_inst, data, optimizer, loss_fn)
 

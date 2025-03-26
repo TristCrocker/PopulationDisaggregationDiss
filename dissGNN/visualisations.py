@@ -183,7 +183,7 @@ def plot_graph_on_shapefile(shapefile_path_coarse, shapefile_path_fine, data, ad
 
     # Save and display
     plt.savefig("output/map_visual/admin_2_3/graph_on_shapefile.png", dpi=500)
-    plt.show()
+    # plt.show()
 
 
 def plot_admin_dists(data):

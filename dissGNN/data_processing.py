@@ -29,6 +29,7 @@ def convert_shapefile_to_graph(shape_path, admin_level):
         for j, district_2 in shape.iterrows():
             if i != j and district_1.geometry.touches(district_2.geometry):
                 edges.append((district_1[ad_code], district_2[ad_code]))
+                edges.append((district_2[ad_code], district_1[ad_code]))
 
     return pd.DataFrame(edges, columns=["source", "target"])
 
@@ -55,15 +56,16 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges_fine["type"] = "fine"
     edges_mappings = convert_level_mappings_to_edges(mappings_path)
     edges_mappings["type"] = "mappings"
-    edges = pd.concat([edges_coarse, edges_fine, edges_mappings])
+    edges = pd.concat([edges_coarse, edges_mappings])
+    # edges = edges_mappings
     
     #Add weights for edges
-    weights = {"coarse" : 1, "fine" : 1, "mappings" : 1}
+    weights = {"coarse" : 1, "fine" : 1, "mappings" : 5}
+    # weights = {"coarse" : 1, "mappings" : 1}
     edges["weights_init"] = edges["type"].map(weights)
-    #Normalize weights TODO
 
     #Load node fgeatures for coarse admin and fine admin level and rename to generealize for concat
-    col_coarse_pcode = "ADM" + str(admin_level_coarse) + "_PCODE"
+    col_coarse_pcode = "ADM" + str(admin_level_coarse) + "_PCODE"   
     col_coarse_pt = "ADM" + str(admin_level_coarse) + "_PT"
     
     node_features_coarse = pd.read_csv(features_path_coarse)
@@ -85,27 +87,29 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
         print("Missing districts in the features file: ", missing_districts)
 
     #Retrieve node features in tensor form
-    x_features, y_feature, edges, node_features = process_feature_data(node_features, edges)
+    x_features, y_feature, edges_final, node_features = process_feature_data(node_features, edges)
 
     x = torch.tensor(x_features, dtype=torch.float)
 
     #Create edge index
-    edge_index = torch.tensor(edges[["source_num", "target_num"]].values.T, dtype=torch.long)
+    edge_index = torch.tensor(edges_final[["source_num", "target_num"]].values.T, dtype=torch.long)
 
     #Edge weights
-    edge_weights = torch.tensor(edges["weights_init"].values, dtype=torch.float)
+    edge_weights = torch.tensor(edges_final["weights_init"].values, dtype=torch.float)
 
-    lap_edge_index, lap_edge_weight = get_laplacian(edge_index, edge_weights, normalization=None)
-    mask = lap_edge_index[0] != lap_edge_index[1]
-    lap_edge_index = lap_edge_index[:, mask]
-    lap_edge_weight = lap_edge_weight[mask]
-    lap_edge_weight = torch.abs(lap_edge_weight) #Remove negatives
-    edges["lap_weight"] = lap_edge_weight.numpy()
-    edges["weights_init"] = edges["weights_init"] * edges["lap_weight"] #Find new weights
-    edges["weights_init"] = edges["weights_init"] / edges["weights_init"].max() #Normalize weights
+    #Produce lap edges
+    # lap_edge_index, lap_edge_weight = get_laplacian(edge_index, edge_weights, normalization=None)
+    # mask = lap_edge_index[0] != lap_edge_index[1]
+    # lap_edge_index = lap_edge_index[:, mask]
+    # lap_edge_weight = lap_edge_weight[mask]
+    # lap_edge_weight = torch.abs(lap_edge_weight) #Remove negatives
+    # edges["lap_weight"] = lap_edge_weight.numpy()
+    # edges["weights_init"] = edges["weights_init"] * edges["lap_weight"] #Find new weights
+    # edges["weights_init"] = edges["weights_init"] / edges["weights_init"].max() #Normalize weights
+    # edge_weights = torch.tensor(edges["weights_init"].values, dtype=torch.float)
 
-    edge_index = torch.tensor(edges[["source_num", "target_num"]].values.T, dtype=torch.long)
-    edge_weights = torch.tensor(edges["weights_init"].values, dtype=torch.float)
+    edge_index = torch.tensor(edges_final[["source_num", "target_num"]].values.T, dtype=torch.long)
+    
     
     #Produce graph data
     data = Data(x=x, edge_index=edge_index)
@@ -174,8 +178,7 @@ def process_feature_data(node_features, edges):
     removed_pcodes.update(admin3_remove["ADM_PCODE"])
     
     node_features = node_features[~node_features["ADM_PCODE"].isin(removed_pcodes)]
-    edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])]
-    edges = edges.copy()
+    edges = edges[edges["source"].isin(node_features["ADM_PCODE"]) & edges["target"].isin(node_features["ADM_PCODE"])].copy()
     edges["source"] = edges["source"].astype(str)
     edges["target"] = edges["target"].astype(str)
 
@@ -198,7 +201,7 @@ def process_feature_data(node_features, edges):
     
     # --------- Visualisation covariates
     #Log population density
-    # y_feature = np.log1p(y_feature)
+    y_feature_final = np.log1p(1 + y_feature)
     original_index = x_unscaled.index  
     # Standardize x (features)
     scaler_vis = MinMaxScaler()
@@ -214,13 +217,12 @@ def process_feature_data(node_features, edges):
     #Visualise covariates
     # for col in x_features_cols_vis.columns:
     #     visualisations.plot_shape_file_covariates("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", x_features_cols_vis, str(col))
-
     # ---------
 
     
-
     scaler = StandardScaler()
     x_features = scaler.fit_transform(x_unscaled)
+    # x_features = x_unscaled.copy()
 
     #Convert districts in edges to numbers
     area_to_index = {code: idx for idx, code in enumerate(node_features.index)}
@@ -230,6 +232,6 @@ def process_feature_data(node_features, edges):
     edges["target_num"] = edges["target"].map(area_to_index)
 
     
-    return x_features, y_feature, edges, node_features
+    return x_features, y_feature_final, edges, node_features
 
 
