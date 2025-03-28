@@ -55,6 +55,8 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
     loss_arr = []
     val_acc_arr = []
     train_acc_arr = []
+    train_r2_arr = []
+    val_r2_arr = []
     
     for param in model.parameters():
         param.requires_grad = True  # Force enable gradients
@@ -66,6 +68,8 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
         mae, mape, r2 = validate(model, data, data.train_mask)
         print("Train - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", R^2: ", r2, ".")
         train_acc_arr.append(mape)
+        train_r2_arr.append(r2)
+        
 
         model.eval()
         with torch.no_grad():
@@ -73,8 +77,9 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
             mae, mape, r2 = validate(model, data, data.test_mask)
             print("Test - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", R^2: ", r2, ".")
             val_acc_arr.append(mape)
+            val_r2_arr.append(r2)
 
-    return loss_arr, val_acc_arr, train_acc_arr
+    return loss_arr, val_acc_arr, train_acc_arr, val_r2_arr, train_r2_arr
 
 
 def produce_predictions(data, model, admin_level):

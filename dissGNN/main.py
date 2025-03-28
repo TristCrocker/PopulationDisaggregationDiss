@@ -29,11 +29,11 @@ if __name__ == "__main__":
    
     # Define hyperparameter search space
     params = {
-        "hidden_size": [16, 32, 64, 128],  # Number of hidden units
-        "message_passing_count": [3, 6, 9],  # GNN layers
+        "hidden_size": [1, 2, 4, 8],  # Number of hidden units
+        "message_passing_count": [2, 4, 6],  # GNN layers
         "drop_prob": [0.01, 0.1, 0.2, 0.3],  # Dropout rate
-        "learning_rate": [1e-4, 5e-5, 1e-5, 1e-6],  # Learning rate
-        "weight_decay": [1e-4, 1e-3, 1e-2],  # L2 regularization
+        "learning_rate": [1e-1, 1e-2, 5e-2, 1e-3],  # Learning rate
+        "weight_decay": [1e-3, 1e-2, 1e-1],  # L2 regularization
     }
 
     input_size = num_features
@@ -41,30 +41,39 @@ if __name__ == "__main__":
 
     hyperparam_combinations = list(itertools.product(*params.values()))
     best_mape = float("inf")
+    best_r2 = float("-inf")
+    
     best_params = {}
 
     # ------------ Hyper parameter search
     # for param in hyperparam_combinations:
     #     hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = param
 
-    #     model_inst = model.GCN(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    #     model_inst = model.GraphSage(input_size, output_size, hidden_size, message_passing_count, drop_prob)
 
     #     loss_fn = nn.SmoothL1Loss() 
     #     optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
-    #     mae, mape, rmse, r2 = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
+    #     loss, val_acc, train_acc, val_r2, train_r2 = train_validate.train_loop(400, model_inst, data, optimizer, loss_fn)
 
     #     model_inst.eval()
-
-    #     if mape < best_mape:
-    #         best_mape = mape
-    #         best_params = params
+        
+    #     if min(val_acc) < best_mape:
+    #         index = np.array(val_acc).argmin()
+    #         if val_r2[index] > 0.6:
+    #             best_mape = min(val_acc)
+    #             best_r2 = val_r2[index]
+    #             best_params = param
             
+    #     print("MAPE: ", min(val_acc), "\nParams: ", param, "\nR2: ", val_r2[np.array(val_acc).argmin()])
     #     print(best_params)
+    #     print(best_r2)
     #     print(best_mape)
-    # print(best_mape, "\n", best_params)
+    # print("Best MAPE: ", best_mape, "\nBest Params: ", best_params, "\nBest R2: ", best_r2)
     # --------------
+
+    print("--------------- START REST OF CODE ---------------")
     
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 4, 0.01, 1e-2, 1e-2
+    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 6, 0.01, 5e-2, 1e-2
     # hidden_size = 64
     # message_passing_count = 3
     # drop_prob = 0.1
@@ -76,7 +85,7 @@ if __name__ == "__main__":
     loss_fn = nn.SmoothL1Loss() 
     # loss_fn = nn.CrossEntropyLoss() 
     optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
-    loss, val_acc, train_acc = train_validate.train_loop(500, model_inst, data, optimizer, loss_fn)
+    loss, val_acc, train_acc, val_r2, train_r2 = train_validate.train_loop(200, model_inst, data, optimizer, loss_fn)
 
     pred, act = train_validate.produce_predictions(data, model_inst, 3)
     visualisations.plot_graph_on_shapefile("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", data, 2, 3)
