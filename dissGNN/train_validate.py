@@ -20,7 +20,7 @@ def train(model, optimizer, data, loss_fn):
     #     if param.grad is not None:
     #         print(f"Gradient Norm [{name}]: {torch.norm(param.grad).item()}")
 
-    # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.4)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), 0.1)
     optimizer.step()
     return loss.item()
 
@@ -57,6 +57,8 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
     train_acc_arr = []
     train_r2_arr = []
     val_r2_arr = []
+    train_mae_arr = []
+    val_mae_arr = []
     
     for param in model.parameters():
         param.requires_grad = True  # Force enable gradients
@@ -69,6 +71,7 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
         print("Train - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", R^2: ", r2, ".")
         train_acc_arr.append(mape)
         train_r2_arr.append(r2)
+        train_mae_arr.append(mae)
         
 
         model.eval()
@@ -78,8 +81,9 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
             print("Test - Epoch Number: ", epoch, ", Loss: ", loss, ", MAE: ", mae, ", MAPE: ", mape, ", R^2: ", r2, ".")
             val_acc_arr.append(mape)
             val_r2_arr.append(r2)
+            val_mae_arr.append(mae)
 
-    return loss_arr, val_acc_arr, train_acc_arr, val_r2_arr, train_r2_arr
+    return loss_arr, val_acc_arr, train_acc_arr, val_r2_arr, train_r2_arr, val_mae_arr, train_mae_arr
 
 
 def produce_predictions(data, model, admin_level):

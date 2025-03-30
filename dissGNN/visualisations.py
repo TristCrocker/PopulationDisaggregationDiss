@@ -5,29 +5,6 @@ import geopandas as gpd
 import numpy as np
 
 
-def plot_loss_val_curve(loss_arr, val_acc_arr, train_acc_arr, model_inst):
-    plt.figure(figsize=(8, 5))
-    x = range(len(loss_arr))
-    # Plot training loss
-    plt.plot(x, loss_arr, label="Train Loss", marker='o')
-
-    # Plot validation MAE
-    plt.plot(x, val_acc_arr, label="Val MAPE", marker='o')
-
-    # Plot validation MAE
-    plt.plot(x, train_acc_arr, label="Train MAPE", marker='o')
-
-    plt.title("Training Loss and Validation MAPE over Epochs" + " (" + type(model_inst).__name__ + ")")
-    plt.xlabel("Epoch")
-    plt.ylabel("Metric Value")
-    plt.legend()
-    plt.tight_layout()
-
-    # Save the figure to disk
-    plt.savefig("output/" + type(model_inst).__name__ + "/train_loss_curve.png", dpi=300)
-
-
-
 def plot_graph_structure(data):
     # Convert PyTorch Geometric edge index to Pandas DataFrame
     edges = data.edge_index.cpu().numpy().T
@@ -254,3 +231,49 @@ def plot_shape_file_covariates(shapefile_path_coarse, shapefile_path_fine, df_da
 
     plt.savefig("output/map_visual/covariates/map_visual_covariate_" + covariate_col + ".png", dpi=500)
     # plt.show()
+
+
+def smooth_curve(data, window_size=10):
+    return np.convolve(data, np.ones(window_size)/window_size, mode='same')
+
+def plot_acc_loss_over_epochs(loss, val_acc, train_acc, val_r2, train_r2, val_mae, train_mae, model_inst):
+    val_acc = smooth_curve(val_acc)
+    train_acc = smooth_curve(train_acc)
+    val_r2 = smooth_curve(val_r2)
+    train_r2 = smooth_curve(train_r2)
+    val_mae = smooth_curve(val_mae)
+    train_mae = smooth_curve(train_mae)
+
+
+    epochs = range(1, len(train_acc) + 1)
+    fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+
+    # Loss
+    axs[0].plot(epochs, loss, label='Loss', color='black')
+    axs[0].set_ylabel('Loss')
+    axs[0].set_title('Loss Over Epochs')
+    axs[0].legend()
+    axs[0].grid(True)
+
+    # MAPE and MAE
+    axs[1].plot(epochs, train_acc, label='Train MAPE', color='blue')
+    axs[1].plot(epochs, val_acc, label='Val MAPE', color='orange')
+    axs[1].plot(epochs, train_mae, label='Train MAE', color='green', linestyle='--')
+    axs[1].plot(epochs, val_mae, label='Val MAE', color='red', linestyle='--')
+    axs[1].set_ylabel('Score')
+    axs[1].set_title('Accuracy Over Epochs')
+    axs[1].legend()
+    axs[1].grid(True)
+
+    # MAE
+    axs[2].plot(epochs, train_r2, label='Train R²', color='blue')
+    axs[2].plot(epochs, val_r2, label='Val R²', color='orange')
+    axs[2].set_xlabel('Epoch')
+    axs[2].set_ylabel('R²')
+    axs[2].set_title('R² Over Epochs')
+    axs[2].legend()
+    axs[2].grid(True)
+    axs[2].set_ylim(0,1)
+
+    # Save the figure to disk
+    plt.savefig("output/" + type(model_inst).__name__ + "/train_loss_curve.png", dpi=300)
