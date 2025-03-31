@@ -149,7 +149,6 @@ if __name__ == "__main__":
     # Visualisations
     visualisations.plot_graph_on_shapefile("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", data, 2, 3)
     visualisations.plot_admin_dists(data)
-    visualisations.plot_acc_loss_over_epochs([loss_TRAN, loss_GCN2, loss_GAT2, loss_SAGE], [model_inst_TRAN, model_inst_GCN2, model_inst_GAT2, model_inst_SAGE])
     visualisations.plot_graph_structure(data)
 
     # Predictions on shapefile
@@ -163,6 +162,9 @@ if __name__ == "__main__":
     visualisations.plot_residuals(pred_GCN2, act_GCN2, model_inst_GCN2)
     visualisations.plot_residuals(pred_GAT2, act_GAT2, model_inst_GAT2)
     visualisations.plot_residuals(pred_SAGE, act_SAGE, model_inst_SAGE)
+
+    visualisations.plot_acc_loss_over_epochs([loss_TRAN, loss_GCN2, loss_GAT2, loss_SAGE], [model_inst_TRAN, model_inst_GCN2, model_inst_GAT2, model_inst_SAGE])
+
 
 
 

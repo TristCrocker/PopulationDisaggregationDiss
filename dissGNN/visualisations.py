@@ -76,12 +76,11 @@ def plot_shape_file_predictions(shapefile_path, pred, act, admin_level, data, mo
     axes[0].set_ylabel("Latitude", fontsize=18, fontweight='bold')
     axes[0].tick_params(axis='both', labelsize=tick_fontsize)
 
-    gdf_merged.plot(column="pred", cmap="OrRd", legend=True, ax=axes[1])
+    gdf_merged.plot(column="pred", cmap="OrRd", legend=True, ax=axes[1], vmin=0, vmax=3500)
     axes[1].set_title("Predicted", **title_font)
     axes[1].set_xlabel("Longitude", fontsize=18, fontweight='bold')
     axes[1].set_ylabel("Latitude", fontsize=18, fontweight='bold')
     axes[1].tick_params(axis='both', labelsize=tick_fontsize)
-
 
     plt.savefig("output/" + type(model_inst).__name__ + "/mapped_predictions.png", dpi=500)
     # plt.show()
