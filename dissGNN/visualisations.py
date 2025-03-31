@@ -54,7 +54,7 @@ def plot_shape_file(shapefile_path, admin_level):
     plt.savefig("output/map_visual/admin_" + str(admin_level) + "/map_visual_population_counts.png", dpi=500)
     # plt.show()
 
-def plot_shape_file_predictions(shapefile_path, pred, act, admin_level, data):
+def plot_shape_file_predictions(shapefile_path, pred, act, admin_level, data, model_inst):
     gdf = gpd.read_file(shapefile_path)
     gdf = gdf.rename(columns={"ADM"+str(admin_level)+"_PCODE" : "ADM_PCODE"})
     mask_admin_level = (data.admin_level == admin_level)
@@ -64,28 +64,46 @@ def plot_shape_file_predictions(shapefile_path, pred, act, admin_level, data):
     gdf_merged = gdf.merge(df, on="ADM_PCODE", how="left")
 
     fig, axes = plt.subplots(ncols=2, figsize=(12, 6))
+    plt.rcParams.update({'font.size': 14})
+
+    label_font = {'fontsize': 18, 'fontweight': 'bold'}
+    title_font = {'fontsize': 18, 'fontweight': 'bold'}
+    tick_fontsize = 16
 
     gdf_merged.plot(column="act", cmap="OrRd", legend=True, ax=axes[0])
-    axes[0].set_title("Actual")
+    axes[0].set_title("Actual", **title_font)
+    axes[0].set_xlabel("Longitude", fontsize=18, fontweight='bold')
+    axes[0].set_ylabel("Latitude", fontsize=18, fontweight='bold')
+    axes[0].tick_params(axis='both', labelsize=tick_fontsize)
 
     gdf_merged.plot(column="pred", cmap="OrRd", legend=True, ax=axes[1])
-    axes[1].set_title("Predicted")
+    axes[1].set_title("Predicted", **title_font)
+    axes[1].set_xlabel("Longitude", fontsize=18, fontweight='bold')
+    axes[1].set_ylabel("Latitude", fontsize=18, fontweight='bold')
+    axes[1].tick_params(axis='both', labelsize=tick_fontsize)
 
-    plt.savefig("output/map_visual/predictions/map_visual_population_counts.png", dpi=500)
+
+    plt.savefig("output/" + type(model_inst).__name__ + "/mapped_predictions.png", dpi=500)
     # plt.show()
 
 def plot_residuals(pred, act, model):
     residuals = act - pred
 
     plt.figure(figsize=(8, 6))
+    plt.rcParams.update({'font.size': 14})
+
+    label_font = {'fontsize': 18, 'fontweight': 'bold'}
+    title_font = {'fontsize': 18, 'fontweight': 'bold'}
+    tick_fontsize = 16
 
     plt.scatter(pred, residuals, alpha=0.7, edgecolors='k')
     plt.axhline(y=0, color='red', linestyle='--', linewidth=1)
 
-    plt.xlabel("Predicted Values")
-    plt.ylabel("Residuals")
-    plt.title("Residual Plot")
-
+    plt.xlabel("Predicted Values", **label_font)
+    plt.ylabel("Residuals", **label_font)
+    plt.title("Residual Plot", **title_font)
+    plt.tick_params(axis='both', labelsize=tick_fontsize)
+    plt.tight_layout()
     plt.savefig("output/" + str(type(model).__name__) + "/residuals_plot.png", dpi=500)
     # plt.show()
 
@@ -137,7 +155,13 @@ def plot_graph_on_shapefile(shapefile_path_coarse, shapefile_path_fine, data, ad
     G = nx.from_pandas_edgelist(edges_df, source="source", target="target", create_using=nx.Graph())
 
     # Plot the shapefile as the base map
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(8, 12))
+    plt.rcParams.update({'font.size': 14})
+
+    label_font = {'fontsize': 18, 'fontweight': 'bold'}
+    title_font = {'fontsize': 18, 'fontweight': 'bold'}
+
+    tick_fontsize = 16
     gdf_matched_coarse.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.6)
     gdf_matched_fine.plot(ax=ax, color="lightgrey", edgecolor="black", alpha=0.6)
 
@@ -153,10 +177,11 @@ def plot_graph_on_shapefile(shapefile_path_coarse, shapefile_path_fine, data, ad
     # Overlay the graph structure
     nx.draw_networkx_nodes(G_coarse, pos_coarse, ax=ax, node_size=50, node_color="blue", alpha=0.8)
     # Formatting
-    plt.title("Graph Structure Overlay on Shapefile")
-    plt.xlabel("Longitude")
-    plt.ylabel("Latitude")
+    plt.title("Graph Structure Overlay on Shapefile", **title_font)
+    plt.xlabel("Longitude",**label_font)
+    plt.ylabel("Latitude", **label_font)
     plt.axis("on")
+    ax.tick_params(axis='both', labelsize=tick_fontsize)
 
     # Save and display
     plt.savefig("output/map_visual/admin_2_3/graph_on_shapefile.png", dpi=500)
@@ -233,47 +258,34 @@ def plot_shape_file_covariates(shapefile_path_coarse, shapefile_path_fine, df_da
     # plt.show()
 
 
-def smooth_curve(data, window_size=10):
+def smooth_curve(data, window_size=20):
     return np.convolve(data, np.ones(window_size)/window_size, mode='same')
 
-def plot_acc_loss_over_epochs(loss, val_acc, train_acc, val_r2, train_r2, val_mae, train_mae, model_inst):
-    val_acc = smooth_curve(val_acc)
-    train_acc = smooth_curve(train_acc)
-    val_r2 = smooth_curve(val_r2)
-    train_r2 = smooth_curve(train_r2)
-    val_mae = smooth_curve(val_mae)
-    train_mae = smooth_curve(train_mae)
+def plot_acc_loss_over_epochs(model_losses, model_inst_arr):
+    epochs = range(1, len(model_losses[0]) + 1)
+    fig, axs = plt.subplots(1, 1, figsize=(14, 6), sharex=True)
 
+    # Global font size config
+    plt.rcParams.update({'font.size': 14})
 
-    epochs = range(1, len(train_acc) + 1)
-    fig, axs = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+    label_font = {'fontsize': 18, 'fontweight': 'bold'}
+    title_font = {'fontsize': 18, 'fontweight': 'bold'}
+    tick_fontsize = 16
 
     # Loss
-    axs[0].plot(epochs, loss, label='Loss', color='black')
-    axs[0].set_ylabel('Loss')
-    axs[0].set_title('Loss Over Epochs')
-    axs[0].legend()
-    axs[0].grid(True)
+    # Loss
+    for i, losses in enumerate(model_losses):
+        axs.plot(epochs, losses, label=f'Model Loss ({type(model_inst_arr[i]).__name__})')
+    axs.set_ylabel('Loss', **label_font)
+    axs.set_title('Loss Over Epochs', **title_font)
+    axs.set_xlabel('Epochs', **label_font)
+    axs.legend()
+    axs.tick_params(axis='both', labelsize=tick_fontsize)
+    axs.grid(True)
 
-    # MAPE and MAE
-    axs[1].plot(epochs, train_acc, label='Train MAPE', color='blue')
-    axs[1].plot(epochs, val_acc, label='Val MAPE', color='orange')
-    axs[1].plot(epochs, train_mae, label='Train MAE', color='green', linestyle='--')
-    axs[1].plot(epochs, val_mae, label='Val MAE', color='red', linestyle='--')
-    axs[1].set_ylabel('Score')
-    axs[1].set_title('Accuracy Over Epochs')
-    axs[1].legend()
-    axs[1].grid(True)
-
-    # MAE
-    axs[2].plot(epochs, train_r2, label='Train R²', color='blue')
-    axs[2].plot(epochs, val_r2, label='Val R²', color='orange')
-    axs[2].set_xlabel('Epoch')
-    axs[2].set_ylabel('R²')
-    axs[2].set_title('R² Over Epochs')
-    axs[2].legend()
-    axs[2].grid(True)
-    axs[2].set_ylim(0,1)
-
+    plt.tight_layout()
     # Save the figure to disk
-    plt.savefig("output/" + type(model_inst).__name__ + "/train_loss_curve.png", dpi=300)
+    if len(model_losses) == 1:
+        plt.savefig("output/" + type(model_inst_arr[0]).__name__ + "/train_loss_curve.png", dpi=500)
+    else:
+        plt.savefig("output/all_models/train_loss_curve.png", dpi=500)

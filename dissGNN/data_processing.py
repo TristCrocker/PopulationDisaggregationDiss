@@ -60,9 +60,10 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     # edges = edges_mappings
     
     #Add weights for edges
-    weights = {"coarse" : 1, "fine" : 1, "mappings" : 2}
+    weights = {"coarse" : 0.5, "fine" : 0.2, "mappings" : 3}
     # weights = {"coarse" : 1, "mappings" : 1}
     edges["weights_init"] = edges["type"].map(weights)
+    edges["weights_init"] = edges["weights_init"] / edges["weights_init"].max()
 
     #Load node fgeatures for coarse admin and fine admin level and rename to generealize for concat
     col_coarse_pcode = "ADM" + str(admin_level_coarse) + "_PCODE"   

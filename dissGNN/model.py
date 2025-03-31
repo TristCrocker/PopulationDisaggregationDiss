@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch_scatter import scatter_add
 import torch
 import torch_geometric.utils
+from torch_geometric.utils import add_self_loops
 
 
 class LinRegModel(nn.Module):
@@ -34,10 +35,12 @@ class GraphSage(nn.Module):
 
     def forward(self, x, edge_index, edge_weight):
         for layer in self.conv:
-            x = F.dropout(x, p=self.drop_prob, training = self.training)
+            
             x = layer(x, edge_index)          
             # x = F.leaky_relu(x, negative_slope = 0.01)
             x = F.relu(x)
+            x = F.dropout(x, p=self.drop_prob, training = self.training)
+            
 
         x = self.final_layer(x, edge_index)
 
@@ -111,7 +114,7 @@ class GCN2Net(nn.Module):
         super().__init__()
         self.initial_proj = nn.Linear(input_size, hidden_size)
         self.gcn_layers = nn.ModuleList([
-            GCN2Conv(hidden_size, alpha=alpha, theta=theta, layer=i + 1)
+            GCN2Conv(hidden_size, alpha=alpha, theta=theta, layer=i + 1, add_self_loops=True)
             for i in range(num_layers)
         ])
         self.final_proj = nn.Linear(hidden_size, output_size)
@@ -120,9 +123,32 @@ class GCN2Net(nn.Module):
     def forward(self, x, edge_index, edge_weight):
         x0 = x = self.initial_proj(x)  # project input to hidden size
         for layer in self.gcn_layers:
-            x = F.dropout(x, p=self.dropout, training=self.training)
+            
             x = layer(x, x0, edge_index)
             x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+        x = self.final_proj(x)
+        return x
+    
+class GCN2NetWeights(nn.Module):
+    def __init__(self, input_size, output_size, hidden_size, num_layers, drop_prob, alpha=0.1, theta=0.5):
+        super().__init__()
+        self.initial_proj = nn.Linear(input_size, hidden_size)
+        self.gcn_layers = nn.ModuleList([
+            GCN2Conv(hidden_size, alpha=alpha, theta=theta, layer=i + 1, add_self_loops=True)
+            for i in range(num_layers)
+        ])
+        self.final_proj = nn.Linear(hidden_size, output_size)
+        self.dropout = drop_prob
+
+    def forward(self, x, edge_index, edge_weight):
+        x0 = x = self.initial_proj(x)  # project input to hidden size
+        for layer in self.gcn_layers:
+            
+            x = layer(x, x0, edge_index, edge_weight=edge_weight)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
 
         x = self.final_proj(x)
         return x
@@ -131,16 +157,34 @@ class GATv2Net(nn.Module):
     def __init__(self, input_size, output_size, hidden_size, num_layers, drop_prob, heads=4):
         super().__init__()
         self.layers = nn.ModuleList()
-        self.layers.append(GATv2Conv(input_size, hidden_size, heads=heads))
+        self.layers.append(GATv2Conv(input_size, hidden_size, heads=heads, add_self_loops=True))
         for _ in range(num_layers - 1):
-            self.layers.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads))
+            self.layers.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads, add_self_loops=True))
         self.final = nn.Linear(hidden_size * heads, output_size)
         self.dropout = drop_prob
 
-    def forward(self, x, edge_index, edge_weight=None):
+    def forward(self, x, edge_index, edge_weight):
         for conv in self.layers:
+            x = F.relu(conv(x, edge_index))
             x = F.dropout(x, p=self.dropout, training=self.training)
-            x = F.elu(conv(x, edge_index))
+        x = self.final(x)
+        return x
+    
+class GATv2NetWeights(nn.Module):
+    def __init__(self, input_size, output_size, hidden_size, num_layers, drop_prob, heads=4):
+        super().__init__()
+        self.layers = nn.ModuleList()
+        self.layers.append(GATv2Conv(input_size, hidden_size, heads=heads, edge_dim=1, add_self_loops=True))
+        for _ in range(num_layers - 1):
+            self.layers.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads, edge_dim=1, add_self_loops=True))
+        self.final = nn.Linear(hidden_size * heads, output_size)
+        self.dropout = drop_prob
+
+    def forward(self, x, edge_index, edge_weight):
+        edge_attr = edge_weight.view(-1, 1) # Preprocess edge_weights
+        for conv in self.layers:
+            x = F.relu(conv(x, edge_index, edge_attr=edge_attr))
+            x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.final(x)
         return x
     
@@ -155,9 +199,10 @@ class TransformerNet(nn.Module):
         self.final = nn.Linear(hidden_size * heads, output_size)
         self.dropout = drop_prob
 
-    def forward(self, x, edge_index, edge_weight=None):
+    def forward(self, x, edge_index, edge_weight):
+        edge_index, _ = add_self_loops(edge_index, num_nodes=x.size(0)) # Self-loops
         for conv in self.layers:
-            x = F.dropout(x, p=self.dropout, training=self.training)
             x = F.relu(conv(x, edge_index))
+            x = F.dropout(x, p=self.dropout, training=self.training)
         x = self.final(x)
         return x
