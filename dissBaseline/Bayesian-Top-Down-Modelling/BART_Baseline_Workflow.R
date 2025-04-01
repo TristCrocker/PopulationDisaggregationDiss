@@ -8,6 +8,7 @@ library(groupdata2)
 library(terra)
 library(caret)
 library(dplyr)
+library(ggplot2)
 
 
 # Specify Paths
@@ -27,22 +28,38 @@ admin2_data <- read.csv(paste0(input_path, "covariates/district/all_features_dis
 # }
 
 # Plot distribution of data
-ggplot(admin2_data, aes(x = (T_TL / district_area))) +
-  geom_histogram(fill = "blue", bins = 30, alpha = 0.7) +
+p1 <- ggplot(admin2_data, aes(x = (T_TL / district_area))) +
+  geom_histogram(fill = "blue", bins = 40, alpha = 0.7) +
   theme_minimal() +
-  labs(title = "Original Population Density Distribution", 
-       x = "Population Density (People per unit area)", 
-       y = "Frequency")
-ggsave("PopulationDensityDistributionPlot.jpg", plot = last_plot(), path = "output/BART/")
+  labs(
+    title = "Original Population Density Distribution", 
+    x = "Population Density (People per unit area)", 
+    y = "Frequency"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 16)
+  )
 
-# Plot distribution of data
-ggplot(admin2_data, aes(x = log(T_TL / district_area))) +
-  geom_histogram(fill = "blue", bins = 30, alpha = 0.7) +
+ggsave("PopulationDensityDistributionPlot.jpg", plot = p1, path = "output/BART/", dpi = 500)
+
+p2 <- ggplot(admin2_data, aes(x = log(T_TL / district_area))) +
+  geom_histogram(fill = "blue", bins = 40, alpha = 0.7) +
   theme_minimal() +
-  labs(title = "Log Population Density Distribution", 
-       x = "Log Population Density (People per unit area)", 
-       y = "Frequency")
-ggsave("LogPopulationDensityDistributionPlot.jpg", plot = last_plot(), path = "output/BART/")
+  labs(
+    title = "Log Population Density Distribution", 
+    x = "Log Population Density (People per unit area)", 
+    y = "Frequency"
+  ) +
+  theme(
+    plot.title = element_text(size = 18, face = "bold"),
+    axis.title = element_text(size = 18, face = "bold"),
+    axis.text = element_text(size = 16)
+  )
+
+ggsave("LogPopulationDensityDistributionPlot.jpg", plot = p2, path = "output/BART/", dpi = 500)
+
 
 #Remove population counts of 0
 admin2_data <- admin2_data %>%
@@ -117,7 +134,7 @@ admin2_data_scaled <- admin2_data %>%
 
 set.seed(123)
 #use 70% of dataset as training set and 30% as test set
-smp_size <- floor(0.70 * nrow(admin2_data_scaled))
+smp_size <- floor(0.8 * nrow(admin2_data_scaled))
 
 ## set the seed to make your partition reproducible
 set.seed(123)
@@ -324,14 +341,26 @@ var_importance_df <- data.frame(
 )
 
 # Plot Variable Importance
-ggplot(var_importance_df, aes(x = reorder(variable, inc_prop), y = inc_prop, fill = variable)) +
+p <- ggplot(var_importance_df, aes(x = reorder(variable, inc_prop), y = inc_prop, fill = variable)) +
   geom_bar(stat = "identity") +
   coord_flip() +
-  theme_minimal(base_family = "sans", base_size = 14) +
-  theme(panel.background = element_rect(fill = "white"), legend.position = "none") +
-  labs(title = "Variable Importance", x = "Variables", y = "Importance (%)")
+  theme_minimal(base_family = "sans") +
+  theme(
+    plot.title = element_text(size = 20, face = "bold"),
+    axis.title = element_text(size = 20, face = "bold"),
+    axis.text = element_text(size = 20),
+    panel.background = element_rect(fill = "white"),
+    legend.position = "none"
+  ) +
+  labs(
+    title = "Variable Importance", 
+    x = "Variables", 
+    y = "Importance (%)"
+  )
 
-ggsave("variable_importance.jpg", plot = last_plot(), path = "output/BART/")
+# Save with high resolution
+ggsave("variable_importance.jpg", plot = p, path = "output/BART/", dpi = 500, width = 12, height = 12)
+
 
 # Save Variable Importance
 data.table::fwrite(var_importance_df, paste0(output_path, "BART/BART_var_importance.csv"))
@@ -365,8 +394,8 @@ admin3_covs <- admin3_covs %>%
   mutate(building_area = building_area / district_area)
 
 # Remove metadata
-covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_area, -log_population,
-                                     -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
+# covs_admin3 <- admin3_covs %>% select(-ADM3_PT, -ADM3_PCODE, -T_TL, -district_area, -log_population,
+#                                      -ADM3_PT, -ADM3_PCODE, -ADM3_REF, -ADM3ALT1_PT, -ADM3ALT2_PT, -ADM2_PT, -ADM2_PCODE, -ADM1_PT, -ADM1_PCODE, -ADM0_EN, -ADM0_PT, -ADM0_PCODE, -DATE, -VALIDON, -VALIDTO, -AREA_SQKM)
 
 # Select Covariates - Trees, Built.Area, building_area, building_count, osm_roads, osm_potw
 # covs_admin3 <- covs_admin3 %>%

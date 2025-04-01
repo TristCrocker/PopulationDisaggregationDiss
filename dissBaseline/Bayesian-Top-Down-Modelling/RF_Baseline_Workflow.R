@@ -145,7 +145,6 @@ print(paste0("Skew: ", skewness(admin2_data_scaled$pop_density)))
 model2 <- randomForest(x = train_covs, y = train$pop_density, mtry = 8, na.action = na.omit, ntree = 300, nodesize = 1, 
                       plot = T, trace = T, importance=TRUE, sampsize=108, replace=TRUE) 
 
-
 # Predictions on training data
 predicted_values <- predict(model2, newdata = train_covs)
 
@@ -264,10 +263,24 @@ admin2_predictions %>%
 ggsave("residual_histogram.jpg", plot = last_plot(), path = "output/RF/")
 
 
-# Variable Importance
-varImpPlot(model2 , sort = TRUE , n.var = 10 , main = "Variable Importance Random Forest")
+# Var Importrance
+jpeg("output/RF/variable_importance.jpg", width = 10, height = 12, units = "in", res = 500)
 
-ggsave("variable_importance.jpg", plot = last_plot(), path = "output/RF/")
+# Set clean margins and scaled font sizes
+par(
+  mar = c(3, 0, 0, 0),   # Bottom, Left, Top, Right margins (extra left space for labels)
+  cex.main = 2,           # Title size (relative scale)
+  cex.lab = 1.5,          # Axis label size
+  cex.axis = 1.1          # Axis tick size
+)
+
+# Generate the variable importance plot
+varImpPlot(model2, sort = TRUE, n.var = 10, main = "",   cex = 1.4 )
+
+# Write plot to file
+dev.off()
+
+
 
 
 # Save Variable Importance
