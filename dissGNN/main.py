@@ -9,8 +9,6 @@ import pandas as pd
 import numpy as np
 import random
 
-import os
-os.environ['TMPDIR'] = '/Users/tristcrocker/tmp'
 
 
 def set_seed(seed=42):
