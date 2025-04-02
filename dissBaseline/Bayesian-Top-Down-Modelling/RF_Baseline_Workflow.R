@@ -9,10 +9,6 @@ library(caret)
 library(lsa)
 library(e1071)
 
-# Specify Paths
-input_path <- "data/"  # Adjust path as needed
-output_path <- "output/"
-
 # Load Combined Data
 admin2_data <- read.csv(paste0(input_path, "covariates/district/all_features_districts.csv"))
 
