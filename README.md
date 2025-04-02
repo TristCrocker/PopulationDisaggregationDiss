@@ -1,7 +1,7 @@
 
 # Population Disaggregation using Graph Neural Networks in Sub-Saharan Africa
 
-This repo is intended to be used as part of a 4th Year Computer Science Disserataion at The University of Edinburgh.
+This repo is intended to be used as part of a 4th year computer science Dissertation at The University of Edinburgh.
 
 This project is used for baseline result production and Graph Neural Network (GNN) result production in population disaggregation (admin level 2 to 3) on a Mozambican population and covariate dataset.
 
