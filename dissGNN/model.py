@@ -130,7 +130,7 @@ class GCN2Net(nn.Module):
     def __init__(self, input_size, output_size, hidden_size, num_layers, drop_prob, alpha=0.1, theta=0.5):
         super().__init__()
         # Initial linear layer (Input to hidden layer)
-        self.initial_proj = nn.Linear(input_size, hidden_size)
+        self.init_layer = nn.Linear(input_size, hidden_size)
 
         # Add number of hidden layers specified
         self.conv = nn.ModuleList([
@@ -139,7 +139,7 @@ class GCN2Net(nn.Module):
         ])
 
         # Hidden layer to output
-        self.final_proj = nn.Linear(hidden_size, output_size)
+        self.final_layer = nn.Linear(hidden_size, output_size)
 
         # Dropout
         self.dropout = drop_prob
@@ -147,7 +147,7 @@ class GCN2Net(nn.Module):
     # Forward
     def forward(self, x, edge_index, edge_weight):
         # Initial linear layer and store hidden rep for residuals
-        x0 = x = self.initial_proj(x)
+        x0 = x = self.init_layer(x)
 
         # Loop over layers
         for layer in self.conv:
@@ -160,7 +160,7 @@ class GCN2Net(nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Final Linear layer
-        x = self.final_proj(x)
+        x = self.final_layer(x)
         return x
     
 # Graph Convolutional Network Version 2 Model (With weights)
@@ -168,7 +168,7 @@ class GCN2NetWeights(nn.Module):
     def __init__(self, input_size, output_size, hidden_size, num_layers, drop_prob, alpha=0.1, theta=0.5):
         super().__init__()
         # Initial linear layer (Input to hidden layer)
-        self.initial_proj = nn.Linear(input_size, hidden_size)
+        self.init_layer = nn.Linear(input_size, hidden_size)
 
         # Add number of hidden layers specified
         self.conv = nn.ModuleList([
@@ -177,7 +177,7 @@ class GCN2NetWeights(nn.Module):
         ])
 
         # Hidden layer to output
-        self.final_proj = nn.Linear(hidden_size, output_size)
+        self.final_layer = nn.Linear(hidden_size, output_size)
 
         # Dropout
         self.dropout = drop_prob
@@ -185,7 +185,7 @@ class GCN2NetWeights(nn.Module):
     # Forward
     def forward(self, x, edge_index, edge_weight):
         # Initial linear layer and store hidden rep for residuals
-        x0 = x = self.initial_proj(x)
+        x0 = x = self.init_layer(x)
 
         # Loop over layers
         for layer in self.conv:
@@ -198,7 +198,7 @@ class GCN2NetWeights(nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Final linear layer
-        x = self.final_proj(x)
+        x = self.final_layer(x)
         return x
     
 # Graph Attention Network Version 2 Model
@@ -215,7 +215,7 @@ class GATv2Net(nn.Module):
             self.conv.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads, add_self_loops=True))
 
         #Hidden layer to output
-        self.final = nn.Linear(hidden_size * heads, output_size)
+        self.final_layer = nn.Linear(hidden_size * heads, output_size)
 
         # Dropout
         self.dropout = drop_prob
@@ -233,7 +233,7 @@ class GATv2Net(nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Final linear layer
-        x = self.final(x)
+        x = self.final_layer(x)
 
         return x
     
@@ -250,7 +250,7 @@ class GATv2NetWeights(nn.Module):
             self.conv.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads, edge_dim=1, add_self_loops=True))
 
         # Hidden to output layer
-        self.final = nn.Linear(hidden_size * heads, output_size)
+        self.final_layer = nn.Linear(hidden_size * heads, output_size)
 
         # Dropout
         self.dropout = drop_prob
@@ -271,7 +271,7 @@ class GATv2NetWeights(nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Final linear layer
-        x = self.final(x)
+        x = self.final_layer(x)
         return x
     
 # Transformer GNN Model
@@ -287,7 +287,7 @@ class TransformerNet(nn.Module):
             self.conv.append(TransformerConv(hidden_size * heads, hidden_size, heads=heads))
 
         # Hidden to output layer
-        self.final = nn.Linear(hidden_size * heads, output_size)
+        self.final_layer = nn.Linear(hidden_size * heads, output_size)
 
         # Dropout
         self.dropout = drop_prob
@@ -308,5 +308,5 @@ class TransformerNet(nn.Module):
             x = F.dropout(x, p=self.dropout, training=self.training)
 
         # Final linear layer
-        x = self.final(x)
+        x = self.final_layer(x)
         return x

@@ -55,7 +55,7 @@ def hyperparam_search(model_type, input_size, output_size, epochs=400):
     # Grid of hyperparameters
     params = {
         "hidden_size": [1, 2, 4, 8],  # Hidden units
-        "message_passing_count": [2, 4, 6],  # GNN layers
+        "num_layers": [2, 4, 6],  # GNN layers
         "drop_prob": [0.01, 0.1, 0.2, 0.3],  # Dropout
         "learning_rate": [1e-1, 1e-2, 5e-2, 1e-3],  # Learning rate
         "weight_decay": [1e-3, 1e-2, 1e-1],  # L2 reg
@@ -74,10 +74,10 @@ def hyperparam_search(model_type, input_size, output_size, epochs=400):
     # Loop over combinations
     for param in hyperparam_combinations:
         # Retrieve param
-        hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = param
+        hidden_size, num_layers, drop_prob, learning_rate, weight_decay = param
 
         #Create model
-        model_inst = model_type(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+        model_inst = model_type(input_size, output_size, hidden_size, num_layers, drop_prob)
         loss_fn = nn.SmoothL1Loss() 
         optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
 
@@ -131,20 +131,20 @@ if __name__ == "__main__":
 
 
     #Setup all models with best params from hyperparam search
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 8, 2, 0.1, 0.1, 0.01
-    model_inst_TRAN = model.TransformerNet(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    hidden_size, num_layers, drop_prob, learning_rate, weight_decay = 8, 2, 0.1, 0.1, 0.01
+    model_inst_TRAN = model.TransformerNet(input_size, output_size, hidden_size, num_layers, drop_prob)
     optimizer_TRAN = torch.optim.Adam(model_inst_TRAN.parameters(), lr = learning_rate, weight_decay = weight_decay)
 
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 8, 2, 0.1, 0.1, 0.01
-    model_inst_GCN2 = model.GCN2Net(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    hidden_size, num_layers, drop_prob, learning_rate, weight_decay = 8, 2, 0.1, 0.1, 0.01
+    model_inst_GCN2 = model.GCN2Net(input_size, output_size, hidden_size, num_layers, drop_prob)
     optimizer_GCN2 = torch.optim.Adam(model_inst_GCN2.parameters(), lr = learning_rate, weight_decay = weight_decay)
 
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 2, 2, 0.01, 0.1, 0.01
-    model_inst_GAT2 = model.GATv2Net(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    hidden_size, num_layers, drop_prob, learning_rate, weight_decay = 2, 2, 0.01, 0.1, 0.01
+    model_inst_GAT2 = model.GATv2Net(input_size, output_size, hidden_size, num_layers, drop_prob)
     optimizer_GAT2 = torch.optim.Adam(model_inst_GAT2.parameters(), lr = learning_rate, weight_decay = weight_decay)
 
-    hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 4, 6, 0.01, 0.01, 0.001
-    model_inst_SAGE = model.GraphSage(input_size, output_size, hidden_size, message_passing_count, drop_prob)
+    hidden_size, num_layers, drop_prob, learning_rate, weight_decay = 4, 6, 0.01, 0.01, 0.001
+    model_inst_SAGE = model.GraphSage(input_size, output_size, hidden_size, num_layers, drop_prob)
     optimizer_SAGE = torch.optim.Adam(model_inst_SAGE.parameters(), lr = learning_rate, weight_decay = weight_decay)
     # model_inst_lin = model.LinRegModel(input_size, output_size) # Linear reg model
 
