@@ -9,9 +9,8 @@ import pandas as pd
 import numpy as np
 import random
 
-
-
-def set_seed(seed=42):
+# Function to ensure seed set for reproducibility
+def set_seed(seed=3):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -20,12 +19,20 @@ def set_seed(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+# Produce best score in epochs (Similar to early stop)
 def find_best_score(loss, val_mape, train_acc, val_r2, train_r2, val_mae, train_mae):
     best_epoch_info = None
     best_score = float("inf")
+
+    # Loop over epochs
     for epoch in range(len(val_mae)):
+
+        # Find composite score
         score = comp_score(val_mae[epoch], val_mape[epoch], val_r2[epoch])
+
+        # Check if epoch has new best score and R2 above 0
         if score < best_score and val_r2[epoch] > 0 and train_r2[epoch] > 0:
+            # Store new scores
             best_score = score
             best_epoch_info = {
                 "epoch": epoch,
@@ -39,11 +46,13 @@ def find_best_score(loss, val_mape, train_acc, val_r2, train_r2, val_mae, train_
 
     return best_epoch_info
 
-
+# Composite score for finding best
 def comp_score(mae, mape, r2):
     return mae + mape - (r2 * 100)
 
+# Hyperparameter search function
 def hyperparam_search(model_type, input_size, output_size, epochs=400):
+    # Grid of hyperparameters
     params = {
         "hidden_size": [1, 2, 4, 8],  # Hidden units
         "message_passing_count": [2, 4, 6],  # GNN layers
@@ -52,29 +61,39 @@ def hyperparam_search(model_type, input_size, output_size, epochs=400):
         "weight_decay": [1e-3, 1e-2, 1e-1],  # L2 reg
     }
 
-
+    # Create all combinations
     hyperparam_combinations = list(itertools.product(*params.values()))
+
+    # Init variables
     best_mape = float("inf")
     best_r2 = float("-inf")
     best_score = float("inf")
     best_epoch_info = None
-    
     best_params = {}
 
+    # Loop over combinations
     for param in hyperparam_combinations:
+        # Retrieve param
         hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = param
 
+        #Create model
         model_inst = model_type(input_size, output_size, hidden_size, message_passing_count, drop_prob)
-
         loss_fn = nn.SmoothL1Loss() 
         optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
+
+        # Train model on combo
         loss, val_mape, train_acc, val_r2, train_r2, val_mae, train_mae = train_validate.train_loop(epochs, model_inst, data, optimizer, loss_fn)
 
         model_inst.eval()
-        
+        # Loop over epochs
         for epoch in range(len(val_mae)):
+
+            # Find composite score
             score = comp_score(val_mae[epoch], val_mape[epoch], val_r2[epoch])
+
+            #Check if epoch has new best score
             if score < best_score:
+                # Update best scores and hyerparams
                 best_score = score
                 best_epoch_info = {
                     "epoch": epoch,
@@ -88,11 +107,14 @@ def hyperparam_search(model_type, input_size, output_size, epochs=400):
                 best_params = param
     return best_epoch_info, best_params
 
+# Main function
 if __name__ == "__main__":
+    # Set seed for reproducibility
     set_seed(3) 
+
+    #Load data
     data = load_data("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", "data/covariates/district/all_features_districts.csv", "data/covariates/postos/all_features_postos.csv", "data/mappings/mozam_admin_2_to_3_mappings.csv", 2, 3)
     num_features = data.x.shape[1]
-
     input_size = num_features
     output_size = 1
 
@@ -105,9 +127,10 @@ if __name__ == "__main__":
     # print("GCN2: ", GCN2ConvData, gcn2_params)
     # print("GAT2: ", GAT2Data, gat2_params)
     # print("Sage: ", SageData, sage_params)
+    # ---------------- Hyperparam search -------------
 
 
-    #Setup all models
+    #Setup all models with best params from hyperparam search
     hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 8, 2, 0.1, 0.1, 0.01
     model_inst_TRAN = model.TransformerNet(input_size, output_size, hidden_size, message_passing_count, drop_prob)
     optimizer_TRAN = torch.optim.Adam(model_inst_TRAN.parameters(), lr = learning_rate, weight_decay = weight_decay)
@@ -123,8 +146,9 @@ if __name__ == "__main__":
     hidden_size, message_passing_count, drop_prob, learning_rate, weight_decay = 4, 6, 0.01, 0.01, 0.001
     model_inst_SAGE = model.GraphSage(input_size, output_size, hidden_size, message_passing_count, drop_prob)
     optimizer_SAGE = torch.optim.Adam(model_inst_SAGE.parameters(), lr = learning_rate, weight_decay = weight_decay)
-    # model_inst_lin = model.LinRegModel(input_size, output_size)
+    # model_inst_lin = model.LinRegModel(input_size, output_size) # Linear reg model
 
+    # Set huber loss
     loss_fn = nn.SmoothL1Loss() 
     
     #Train all models
@@ -134,13 +158,13 @@ if __name__ == "__main__":
     loss_SAGE, val_acc, train_acc, val_r2, train_r2, val_mae, train_mae = train_validate.train_loop(150, model_inst_SAGE, data, optimizer_SAGE, loss_fn)
     # best_epoch_score = find_best_score(loss, val_acc, train_acc, val_r2, train_r2, val_mae, train_mae)
 
-    # #Produce predictions for all models
+    # Produce predictions for all models
     pred_TRAN, act_TRAN = train_validate.produce_predictions(data, model_inst_TRAN, 3)
     pred_GCN2, act_GCN2 = train_validate.produce_predictions(data, model_inst_GCN2, 3)
     pred_GAT2, act_GAT2 = train_validate.produce_predictions(data, model_inst_GAT2, 3)
     pred_SAGE, act_SAGE = train_validate.produce_predictions(data, model_inst_SAGE, 3)
 
-    # Visualisations
+    # ---------------- Visualisations --------------
     # visualisations.plot_graph_on_shapefile("data/shapefiles/admin_2/moz_admbnda_adm2_ine_20190607.shp", "data/shapefiles/admin_3/moz_admbnda_adm3_ine_20190607.shp", data, 2, 3)
     # visualisations.plot_admin_dists(data)
     # visualisations.plot_graph_structure(data)
@@ -158,6 +182,7 @@ if __name__ == "__main__":
     # visualisations.plot_residuals(pred_SAGE, act_SAGE, model_inst_SAGE)
 
     # visualisations.plot_acc_loss_over_epochs([loss_TRAN, loss_GCN2, loss_GAT2, loss_SAGE], [model_inst_TRAN, model_inst_GCN2, model_inst_GAT2, model_inst_SAGE])
+    # ---------------- Visualisations --------------
 
 
 
