@@ -93,7 +93,7 @@ def produce_predictions(data, model, admin_level):
         # Produce predictions
         predictions = model(data.x, data.edge_index, data.edge_weight)
 
-    predictions_final = torch.expm1(predictions[data.test_mask]).cpu().numpy().flatten()
-    actual_final = torch.expm1(data.y[data.test_mask]).cpu().numpy().flatten()
+    predictions_final = torch.expm1(predictions[data.test_mask]).numpy().flatten()
+    actual_final = torch.expm1(data.y[data.test_mask]).numpy().flatten()
 
     return predictions_final, actual_final  

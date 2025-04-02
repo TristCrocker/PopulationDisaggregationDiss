@@ -7,7 +7,7 @@ import numpy as np
 # Plot the structure of the input graph
 def plot_graph_structure(data):
     # Convert edges to DF
-    edges = data.edge_index.cpu().numpy().T
+    edges = data.edge_index.numpy().T
     edges_df = pd.DataFrame(edges, columns=["source", "target"])
 
     # Create a graph
@@ -16,7 +16,7 @@ def plot_graph_structure(data):
     # Compute the number subgraphs
     num_subgraphs = nx.number_connected_components(G)
     print(f"Number of connected components (subgraphs): {num_subgraphs}")
-    components = list(nx.connected_components(G))  #
+    components = list(nx.connected_components(G)) 
     component_colors = {node: idx for idx, component in enumerate(components) for node in component}
     node_colors = [component_colors[node] for node in G.nodes()]
 
@@ -118,8 +118,8 @@ def plot_graph_on_shapefile(shapefile_path_coarse, shapefile_path_fine, data, ad
     data.admin_codes = pd.Series(data.admin_codes).astype(str).str.strip()
 
     # Partition into coarse and fine
-    admin_codes_coarse = set(data.admin_codes[data.admin_level.cpu().numpy() == ad_level_coarse])
-    admin_codes_fine = set(data.admin_codes[data.admin_level.cpu().numpy() == ad_level_fine])
+    admin_codes_coarse = set(data.admin_codes[data.admin_level.numpy() == ad_level_coarse])
+    admin_codes_fine = set(data.admin_codes[data.admin_level.numpy() == ad_level_fine])
 
     # Merge node coordinates with shapefile data
     gdf_matched_coarse = gdf_coarse[gdf_coarse[pcode_col_coarse].isin(admin_codes_coarse)].copy()
@@ -140,7 +140,7 @@ def plot_graph_on_shapefile(shapefile_path_coarse, shapefile_path_fine, data, ad
     pos = {**pos_coarse, **pos_fine}
 
     # Create DF for edges
-    edges = data.edge_index.cpu().numpy().T
+    edges = data.edge_index.numpy().T
     edges_df = pd.DataFrame(edges, columns=["source", "target"])
 
     node_index_to_pcode = {i: data.admin_codes[i] for i in range(len(data.admin_codes))}
@@ -191,8 +191,8 @@ def plot_graph_on_shapefile(shapefile_path_coarse, shapefile_path_fine, data, ad
 def plot_admin_dists(data):
 
     # Separate admin level labels
-    admin2_labels = data.y[data.admin_level == 2].cpu().numpy()
-    admin3_labels = data.y[data.admin_level == 3].cpu().numpy()
+    admin2_labels = data.y[data.admin_level == 2].numpy()
+    admin3_labels = data.y[data.admin_level == 3].numpy()
 
     # Plot
     plt.figure(figsize=(12,5))

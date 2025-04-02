@@ -55,10 +55,10 @@ if __name__ == "__main__":
     loss_fn = nn.SmoothL1Loss() 
     
     #Train all models and find best metric scores
-    loss_TRAN, val_acc_TRAN, train_acc_TRAN, val_r2_TRAN, train_r2_TRAN, val_mae_TRAN, train_mae_TRAN = train_validate.train_loop(400, model_inst_TRAN, data, optimiser_TRAN, loss_fn)
-    loss_GCN2, val_acc_GCN2, train_acc_GCN2, val_r2_GCN2, train_r2_GCN2, val_mae_GCN2, train_mae_GCN2 = train_validate.train_loop(400, model_inst_GCN2, data, optimiser_GCN2, loss_fn)
-    loss_GAT2, val_acc_GAT2, train_acc_GAT2, val_r2_GAT2, train_r2_GAT2, val_mae_GAT2, train_mae_GAT2 = train_validate.train_loop(400, model_inst_GAT2, data, optimiser_GAT2, loss_fn)
-    loss_SAGE, val_acc_SAGE, train_acc_SAGE, val_r2_SAGE, train_r2_SAGE, val_mae_SAGE, train_mae_SAGE = train_validate.train_loop(400, model_inst_SAGE, data, optimiser_SAGE, loss_fn)
+    loss_TRAN, val_acc_TRAN, train_acc_TRAN, val_r2_TRAN, train_r2_TRAN, val_mae_TRAN, train_mae_TRAN = train_validate.train_loop(150, model_inst_TRAN, data, optimiser_TRAN, loss_fn)
+    loss_GCN2, val_acc_GCN2, train_acc_GCN2, val_r2_GCN2, train_r2_GCN2, val_mae_GCN2, train_mae_GCN2 = train_validate.train_loop(150, model_inst_GCN2, data, optimiser_GCN2, loss_fn)
+    loss_GAT2, val_acc_GAT2, train_acc_GAT2, val_r2_GAT2, train_r2_GAT2, val_mae_GAT2, train_mae_GAT2 = train_validate.train_loop(150, model_inst_GAT2, data, optimiser_GAT2, loss_fn)
+    loss_SAGE, val_acc_SAGE, train_acc_SAGE, val_r2_SAGE, train_r2_SAGE, val_mae_SAGE, train_mae_SAGE = train_validate.train_loop(150, model_inst_SAGE, data, optimiser_SAGE, loss_fn)
     
     # This may not produce the most optimal result, hyperparameter seach may be needed
     print("\nTransformer Metrics: \n", find_best_score(loss_TRAN, val_acc_TRAN, train_acc_TRAN, val_r2_TRAN, train_r2_TRAN, val_mae_TRAN, train_mae_TRAN))

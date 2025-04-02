@@ -147,7 +147,6 @@ admin2_metrics <- admin2_predictions %>%
 print("Goodness-of-fit metrics Train:")
 print(admin2_metrics)
 
-
 # Convergence plot (OOB vs trees)
 png("output/RF/oob_error_convergence_plot.png", width=600, height=400)
 plot(model2$mse, type="l", xlab="Number of Trees", ylab="OOB MSE")
