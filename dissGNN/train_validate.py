@@ -3,9 +3,9 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 
 # Train function for a single epoch
-def train(model, optimizer, data, loss_fn):
+def train(model, optimiser, data, loss_fn):
     # Setup
-    optimizer.zero_grad()
+    optimiser.zero_grad()
 
     # Produce predictions
     output = model(data.x, data.edge_index, data.edge_weight)
@@ -17,7 +17,7 @@ def train(model, optimizer, data, loss_fn):
     # Retrieve epoch loss
     loss = loss_fn(train_preds, train_labels)
     loss.backward()
-    optimizer.step()
+    optimiser.step()
 
     return loss.item()
 
@@ -45,7 +45,7 @@ def validate(model, data, mask, e=1e-6):
     return mae, mape, r2 
 
 # Training loop
-def train_loop(num_epochs, model, data, optimizer, loss_fn):
+def train_loop(num_epochs, model, data, optimiser, loss_fn):
     # Init variables to store metrics
     loss_arr = []
     val_acc_arr = []
@@ -63,7 +63,7 @@ def train_loop(num_epochs, model, data, optimizer, loss_fn):
         model.train()
 
         # Train model
-        loss = train(model, optimizer, data, loss_fn)
+        loss = train(model, optimiser, data, loss_fn)
 
         # Store loss
         loss_arr.append(loss)

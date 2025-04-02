@@ -64,7 +64,7 @@ def load_data(shape_path_coarse, shape_path_fine, features_path_coarse, features
     edges["weights_init"] = edges["type"].map(weights)
     edges["weights_init"] = edges["weights_init"] / edges["weights_init"].max()
 
-    # -------- Load node features for coarse admin and fine admin level and rename to generalize for concat --------
+    # -------- Load node features for coarse admin and fine admin level and rename to generalise for concat --------
     # Coarse admin level
     col_coarse_pcode = "ADM" + str(admin_level_coarse) + "_PCODE"   
     col_coarse_pt = "ADM" + str(admin_level_coarse) + "_PT"
@@ -172,7 +172,7 @@ def process_feature_data(node_features, edges):
     # --------- Visualisation of covariates --------------
     # original_index = x_unscaled.index  
     
-    # # Standardize x (features)
+    # # Standardise x (features)
     # scaler_vis = MinMaxScaler()
     # x_scaled = scaler_vis.fit_transform(x_unscaled)
     # # x_scaled = x_unscaled.values

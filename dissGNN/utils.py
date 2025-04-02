@@ -79,10 +79,10 @@ def hyperparam_search(model_type, input_size, output_size, data, epochs=400):
         #Create model
         model_inst = model_type(input_size, output_size, hidden_size, num_layers, drop_prob)
         loss_fn = nn.SmoothL1Loss() 
-        optimizer = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
+        optimiser = torch.optim.Adam(model_inst.parameters(), lr = learning_rate, weight_decay = weight_decay)
 
         # Train model on combo
-        loss, val_mape, train_acc, val_r2, train_r2, val_mae, train_mae = train_validate.train_loop(epochs, model_inst, data, optimizer, loss_fn)
+        loss, val_mape, train_acc, val_r2, train_r2, val_mae, train_mae = train_validate.train_loop(epochs, model_inst, data, optimiser, loss_fn)
 
         model_inst.eval()
         # Loop over epochs
