@@ -20,7 +20,7 @@ class LinRegModel(nn.Module):
 
 # GraphSage Model
 class GraphSage(nn.Module):
-    def __init__(self, input_size, output_size, hidden_layer_size, message_passing_count, drop_prob):
+    def __init__(self, input_size, output_size, hidden_layer_size, num_layers, drop_prob):
         super(GraphSage, self).__init__()
 
         # Input to hidden layer
@@ -28,7 +28,7 @@ class GraphSage(nn.Module):
         self.conv.append(SAGEConv(input_size, hidden_layer_size)) 
 
         # Add number of hidden layers specified
-        for i in range(message_passing_count - 1):
+        for i in range(num_layers - 1):
             self.conv.append(SAGEConv(hidden_layer_size, hidden_layer_size))
 
         # Hidden layer to output
@@ -56,7 +56,7 @@ class GraphSage(nn.Module):
     
 # Graph Attention Network Model
 class GAT(nn.Module):
-    def __init__(self, input_size, output_size, hidden_layer_size, message_passing_count, drop_prob):
+    def __init__(self, input_size, output_size, hidden_layer_size, num_layers, drop_prob):
         super(GAT, self).__init__()
 
         # Input to hidden layer
@@ -64,7 +64,7 @@ class GAT(nn.Module):
         self.conv.append(GATConv(input_size, hidden_layer_size, add_self_loops=True)) 
         
         # Add number of hidden layers specified
-        for i in range(message_passing_count - 1):
+        for i in range(num_layers - 1):
             self.conv.append(GATConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         # Hidden layer to output
@@ -91,7 +91,7 @@ class GAT(nn.Module):
     
 # Graph Convolutional Network Model
 class GCN(nn.Module):
-    def __init__(self, input_size, output_size, hidden_layer_size, message_passing_count, drop_prob):
+    def __init__(self, input_size, output_size, hidden_layer_size, num_layers, drop_prob):
         super(GCN, self).__init__()
 
         # Input to hidden layer
@@ -99,7 +99,7 @@ class GCN(nn.Module):
         self.conv.append(GCNConv(input_size, hidden_layer_size, add_self_loops = True)) 
         
         # Add number of hidden layers specified
-        for i in range(message_passing_count - 1):
+        for i in range(num_layers - 1):
             self.conv.append(GCNConv(hidden_layer_size, hidden_layer_size, add_self_loops=True))
 
         # Hidden layer to output
@@ -211,7 +211,7 @@ class GATv2Net(nn.Module):
         self.conv.append(GATv2Conv(input_size, hidden_size, heads=heads, add_self_loops=True))
 
         # Add number of hidden layers specified
-        for _ in range(num_layers - 1):
+        for i in range(num_layers - 1):
             self.conv.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads, add_self_loops=True))
 
         #Hidden layer to output
@@ -246,7 +246,7 @@ class GATv2NetWeights(nn.Module):
         self.conv.append(GATv2Conv(input_size, hidden_size, heads=heads, edge_dim=1, add_self_loops=True))
 
         # Add number of hidden layers specified
-        for _ in range(num_layers - 1):
+        for i in range(num_layers - 1):
             self.conv.append(GATv2Conv(hidden_size * heads, hidden_size, heads=heads, edge_dim=1, add_self_loops=True))
 
         # Hidden to output layer
@@ -283,7 +283,7 @@ class TransformerNet(nn.Module):
         self.conv.append(TransformerConv(input_size, hidden_size, heads=heads))
 
         # Add number of hidden layers specified
-        for _ in range(num_layers - 1):
+        for i in range(num_layers - 1):
             self.conv.append(TransformerConv(hidden_size * heads, hidden_size, heads=heads))
 
         # Hidden to output layer
