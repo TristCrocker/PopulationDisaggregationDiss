@@ -2,4 +2,4 @@ env
 __pycache__
 dissGNN/output/map_visual/covariates
 dissBaseline/Bayesian-Top-Down-Modelling/output/BART
-dissBaseline/Bayesian-Top-Down-Modelling/output/RF
+dissBaseline/Bayesian-Top-Down-Modelling/output/BART
