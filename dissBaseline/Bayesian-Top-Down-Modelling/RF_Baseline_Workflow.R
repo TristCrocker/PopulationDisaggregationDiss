@@ -56,7 +56,7 @@ names(admin2_means) <- cov_stats$Covariate
 admin2_sds <- cov_stats$Std_Dev
 names(admin2_sds) <- cov_stats$Covariate
 
-# Scaling function to standardize covariates
+# Scaling function to standardise covariates
 stdize <- function(x) {
   (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
 }
