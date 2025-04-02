@@ -63,6 +63,11 @@ python -m main
 * Python (GNNs)
 * R (Baselines)
 
+## Acknowledgements 
+
+* The baseline scripts were adapted from https://github.com/wpgp/Bayesian-Top-Down-Modelling
+* The Mozambican dataset was provided by Beate Desmitniece and Sean Ó Héir.
+
 
 
 
