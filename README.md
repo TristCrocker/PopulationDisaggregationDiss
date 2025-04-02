@@ -57,6 +57,7 @@ python -m main
 ```
 
 (Some code is commented out for things like hyperparam search and visualisation, uncomment to see these)
+(Result production on running main, may not be the optimal results)
 
 ## Languages Used 
 
