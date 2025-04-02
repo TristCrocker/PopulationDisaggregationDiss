@@ -48,12 +48,12 @@ cd dissGNN
 Intall dependencies,
 
 ```bash
-  pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 To run GNN models train/test,
 ```bash
-  python -m main
+python -m main
 ```
 
 (Some code is commented out for things like hyperparam search and visualisation, uncomment to see these)
