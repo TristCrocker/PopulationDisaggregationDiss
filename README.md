@@ -33,7 +33,7 @@ source("RF_Baseline_Workflow.R")
 To run BART baseline train/test,
 
 ```bash
-source("RF_Baseline_Workflow.R")
+source("BART_Baseline_Workflow.R")
 
 ```
 
