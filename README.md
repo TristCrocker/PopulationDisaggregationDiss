@@ -39,7 +39,7 @@ source("BART_Baseline_Workflow.R")
 
 ## Getting Started (GNN)
 
-Cd into Pproject,
+Cd into project,
 
 ```bash
 cd dissGNN
